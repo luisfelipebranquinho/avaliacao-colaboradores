@@ -40,6 +40,7 @@
   .proc p{margin:0 0 10px;color:var(--muted);font-size:13px}
   .seg{display:flex;gap:6px}
   .seg button{flex:1;min-height:44px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;font:inherit;font-weight:600}
+  .seg.n10{display:grid;grid-template-columns:repeat(6,1fr)}
   .seg button.on.sim{background:var(--ok);border-color:var(--ok);color:#fff}
   .seg button.on.nao{background:var(--bad);border-color:var(--bad);color:#fff}
   .seg button.on.num{background:var(--brand);border-color:var(--brand);color:#fff}
@@ -224,11 +225,11 @@ function novaAvaliacao(){
   $('listaProc').innerHTML = procedimentos.map((p,i) => {
     const botoes = p.tipo === 'sim_nao'
       ? `<button class="sim" data-v="1">Fez</button><button class="nao" data-v="0">Não fez</button>`
-      : [0,1,2,3,4,5].map(n=>`<button class="num" data-v="${n}">${n}</button>`).join('');
+      : (p.tipo === 'nota10' ? [0,1,2,3,4,5,6,7,8,9,10] : [0,1,2,3,4,5]).map(n=>`<button class="num" data-v="${n}">${n}</button>`).join('');
     return `<div class="proc">
-      <h3>${i+1}. ${esc(p.titulo)}<span class="tag">${p.tipo==='sim_nao'?'Fez / Não fez':'0 a 5'}</span></h3>
+      <h3>${i+1}. ${esc(p.titulo)}<span class="tag">${({sim_nao:'Fez / Não fez',escala:'0 a 5',nota10:'0 a 10'})[p.tipo]}</span></h3>
       ${p.descricao?`<p>${esc(p.descricao)}</p>`:'<p></p>'}
-      <div class="seg" data-pid="${p.id}">${botoes}</div></div>`;
+      <div class="seg${p.tipo==='nota10'?' n10':''}" data-pid="${p.id}">${botoes}</div></div>`;
   }).join('');
   $('listaProc').querySelectorAll('.seg').forEach(seg => {
     seg.addEventListener('click', ev => {
@@ -289,7 +290,7 @@ async function verDetalhe(id){
       <p class="muted">${dt(a.criado_em)} · avaliado por ${esc(a.avaliador_nome)}</p>
       <div class="score ${cls(+a.pontuacao)}" style="display:inline-block;margin-bottom:8px">${(+a.pontuacao).toFixed(0)}%</div>` +
       itens.map(i => {
-        const v = i.tipo==='sim_nao' ? (i.valor ? '✅ Fez' : '❌ Não fez') : `${i.valor} / 5`;
+        const v = i.tipo==='sim_nao' ? (i.valor ? '✅ Fez' : '❌ Não fez') : `${i.valor} / ${i.tipo==='nota10'?10:5}`;
         return `<div class="row"><div class="t" style="font-weight:500">${esc(i.titulo)}</div><div style="white-space:nowrap;font-weight:600">${v}</div></div>`;
       }).join('') + (a.observacao ? `<div class="row"><div><div class="s">Observações</div>${esc(a.observacao)}</div></div>` : '');
     mostrar('Detalhe');
