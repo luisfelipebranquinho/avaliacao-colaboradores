@@ -61,9 +61,32 @@
   .progress div{height:100%;background:linear-gradient(90deg,var(--brand),var(--accent));width:0;transition:width .2s}
   .center{text-align:center}
   .muted{color:var(--muted);font-size:14px}
-  .login-wrap{min-height:80vh;display:flex;flex-direction:column;justify-content:center}
-  .login-wrap h2{margin:0 0 4px;color:var(--brand)}
-  .login-wrap .card{border-top:6px solid var(--brand);box-shadow:0 8px 24px rgba(0,80,40,.08)}
+  .auth{min-height:calc(100vh - 32px);display:flex;flex-direction:column;justify-content:center;max-width:420px;margin:0 auto}
+  .auth-hero{background:linear-gradient(140deg,var(--brand) 0%,var(--brand-dark) 100%);color:#fff;border-radius:18px 18px 0 0;padding:28px 22px 44px;position:relative;overflow:hidden}
+  .auth-hero::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:var(--accent);opacity:.18}
+  .auth-hero h1{margin:12px 0 4px;font-size:22px;line-height:1.2}
+  .auth-hero p{margin:0;opacity:.85;font-size:14px}
+  .auth-mark{width:44px;height:44px;border-radius:12px;background:var(--accent);color:#1b2620;display:grid;place-items:center;font-weight:800;font-size:22px}
+  .auth-card{margin-top:-24px;border-radius:18px;box-shadow:0 10px 30px rgba(0,60,30,.10);position:relative}
+  .tabs{display:flex;background:var(--bg);border-radius:12px;padding:4px;margin-bottom:16px}
+  .tabs button{flex:1;border:0;background:transparent;padding:10px;border-radius:9px;font:inherit;font-weight:600;color:var(--muted)}
+  .tabs button.on{background:var(--card);color:var(--brand-2);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .mt{margin-top:12px}
+  .pw{position:relative}
+  .pw input{padding-right:84px}
+  .eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--brand-2);font:inherit;font-size:13px;font-weight:600;padding:8px}
+  .link{display:block;width:100%;background:none;border:0;color:var(--brand-2);font:inherit;font-weight:600;padding:14px 0 2px;text-align:center}
+  .found{background:var(--bg);border-left:4px solid var(--brand);border-radius:10px;padding:12px;margin-bottom:12px;font-size:14px;color:var(--muted)}
+  .found b{color:var(--ink);font-size:16px}
+  .pend{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;margin:6px 0 4px}
+  .pend button{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:12px;font:inherit}
+  .pend button.on{border-color:var(--brand);background:var(--card);box-shadow:inset 0 0 0 1px var(--brand)}
+  .h-sm{margin:0 0 6px;font-size:17px}
+  .ok-ico{width:52px;height:52px;border-radius:50%;background:var(--accent);color:#1b2620;display:grid;place-items:center;font-size:26px;font-weight:800;margin:4px auto 10px}
+  .req{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+  .req .acts{display:flex;gap:6px}
+  .mini{border:0;border-radius:9px;padding:8px 12px;font:inherit;font-size:13px;font-weight:600;background:var(--brand);color:#fff}
+  .mini.no{background:var(--bg);color:var(--bad);border:1px solid var(--line)}
   .badge{display:inline-block;background:var(--accent);color:#1b2620;font-weight:700;font-size:12px;padding:3px 10px;border-radius:99px;margin-bottom:10px}
 </style>
 </head>
@@ -78,18 +101,86 @@
   <div id="flash"></div>
 
   <!-- LOGIN -->
-  <section id="scrLogin" class="login-wrap">
-    <div class="card">
-      <span class="badge">Checklist</span>
-      <h2>Avaliação de Procedimentos</h2>
-      <p class="muted">Digite sua matrícula para entrar.</p>
-      <label for="loginMat">Matrícula</label>
-      <input id="loginMat" inputmode="numeric" autocomplete="username" placeholder="Ex.: 12345">
-      <div id="boxSenha" class="hidden" style="margin-top:12px">
-        <label for="loginSenha">Senha</label>
-        <input id="loginSenha" type="password" autocomplete="current-password" placeholder="Senha de Squad/líder">
+  <section id="scrLogin" class="auth">
+    <div class="auth-hero">
+      <div class="auth-mark" aria-hidden="true">✓</div>
+      <h1>Avaliação de Procedimentos</h1>
+      <p>Checklist de qualidade da equipe</p>
+    </div>
+
+    <div class="card auth-card">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tabEntrar" class="on" onclick="modo('entrar')">Entrar</button>
+        <button type="button" role="tab" id="tabPrimeiro" onclick="modo('primeiro')">Primeiro acesso</button>
       </div>
-      <button class="btn" id="btnEntrar" onclick="entrar()">Entrar</button>
+
+      <form id="fEntrar" onsubmit="event.preventDefault(); entrar()">
+        <label for="loginMat">Matrícula</label>
+        <input id="loginMat" inputmode="numeric" autocomplete="username" placeholder="Sua matrícula">
+        <label for="loginSenha" class="mt">Senha</label>
+        <div class="pw"><input id="loginSenha" type="password" autocomplete="current-password" placeholder="Sua senha"><button type="button" class="eye" onclick="verSenha('loginSenha',this)">Mostrar</button></div>
+        <button class="btn" id="btnEntrar">Entrar</button>
+        <button type="button" class="link" onclick="modo('esqueci')">Esqueci minha senha</button>
+      </form>
+
+      <form id="fPrimeiro" class="hidden" onsubmit="event.preventDefault(); verificarMatricula()">
+        <p class="muted">Digite sua matrícula. Se você já estiver cadastrado, sua conta será ligada ao seu perfil.</p>
+        <label for="paMat">Matrícula</label>
+        <input id="paMat" inputmode="numeric" autocomplete="username" placeholder="Sua matrícula">
+        <button class="btn" id="btnVerificar">Continuar</button>
+      </form>
+
+      <form id="fCriar" class="hidden" onsubmit="event.preventDefault(); criarSenha()">
+        <div class="found">Encontramos seu cadastro<br><b id="paNome"></b></div>
+        <label for="paSenha">Crie sua senha</label>
+        <div class="pw"><input id="paSenha" type="password" autocomplete="new-password" placeholder="Mínimo de 6 caracteres"><button type="button" class="eye" onclick="verSenha('paSenha',this)">Mostrar</button></div>
+        <label for="paSenha2" class="mt">Confirme a senha</label>
+        <input id="paSenha2" type="password" autocomplete="new-password" placeholder="Repita a senha">
+        <button class="btn" id="btnCriar">Criar senha e entrar</button>
+        <button type="button" class="link" onclick="modo('primeiro')">Não sou eu</button>
+      </form>
+
+      <form id="fVincular" class="hidden" onsubmit="event.preventDefault(); vincular()">
+        <p class="muted">Essa matrícula ainda não está no sistema. Toque no seu nome para ligar sua conta ao seu perfil.</p>
+        <div id="listaPend" class="pend"></div>
+        <div id="boxVinc" class="hidden">
+          <label for="vSenha" class="mt">Crie sua senha</label>
+          <div class="pw"><input id="vSenha" type="password" autocomplete="new-password" placeholder="Mínimo de 6 caracteres"><button type="button" class="eye" onclick="verSenha('vSenha',this)">Mostrar</button></div>
+          <label for="vSenha2" class="mt">Confirme a senha</label>
+          <input id="vSenha2" type="password" autocomplete="new-password" placeholder="Repita a senha">
+          <button class="btn" id="btnVincular">Vincular e entrar</button>
+        </div>
+        <button type="button" class="link" onclick="modo('novo')">Meu nome não está na lista</button>
+      </form>
+
+      <form id="fNovo" class="hidden" onsubmit="event.preventDefault(); solicitarCadastro()">
+        <p class="muted">Seu cadastro será enviado para aprovação de um Squad ou Líder.</p>
+        <label for="nMat">Matrícula</label>
+        <input id="nMat" readonly>
+        <label for="nNome" class="mt">Nome completo</label>
+        <input id="nNome" autocomplete="name" placeholder="Seu nome">
+        <label for="nSenha" class="mt">Crie sua senha</label>
+        <div class="pw"><input id="nSenha" type="password" autocomplete="new-password" placeholder="Mínimo de 6 caracteres"><button type="button" class="eye" onclick="verSenha('nSenha',this)">Mostrar</button></div>
+        <label for="nSenha2" class="mt">Confirme a senha</label>
+        <input id="nSenha2" type="password" autocomplete="new-password" placeholder="Repita a senha">
+        <button class="btn" id="btnNovo">Enviar cadastro</button>
+        <button type="button" class="link" onclick="modo('primeiro')">Voltar</button>
+      </form>
+
+      <form id="fEsqueci" class="hidden" onsubmit="event.preventDefault(); esqueci()">
+        <h3 class="h-sm">Esqueci minha senha</h3>
+        <p class="muted">Informe sua matrícula. Um Squad ou Líder vai liberar a redefinição. Depois disso, entre por <b>Primeiro acesso</b> e crie uma senha nova.</p>
+        <label for="eMat">Matrícula</label>
+        <input id="eMat" inputmode="numeric" placeholder="Sua matrícula">
+        <button class="btn" id="btnEsqueci">Pedir redefinição</button>
+        <button type="button" class="link" onclick="modo('entrar')">Voltar para o login</button>
+      </form>
+
+      <div id="fAviso" class="hidden center">
+        <div class="ok-ico" aria-hidden="true">✓</div>
+        <p id="avisoTxt"></p>
+        <button type="button" class="btn ghost" onclick="modo('entrar')">Voltar para o login</button>
+      </div>
     </div>
   </section>
 
@@ -123,6 +214,7 @@
 
   <!-- EQUIPE (líder) -->
   <section id="scrEquipe" class="hidden">
+    <div class="card hidden" id="pedidosTop"></div>
     <div class="card">
       <h3 style="margin-top:0" id="eqTitulo">Cadastrar colaborador</h3>
       <label for="eqMat">Matrícula</label>
@@ -138,7 +230,7 @@
       <label for="eqAtivo">Situação</label>
       <select id="eqAtivo" style="margin-bottom:10px"><option value="true">Ativo</option><option value="false">Inativo</option></select>
       <div id="boxEqSenha" class="hidden">
-        <label for="eqSenha">Senha (Squad/líder)</label>
+        <label for="eqSenha" id="eqSenhaLbl">Senha</label>
         <input id="eqSenha" type="password" autocomplete="new-password" placeholder="Deixe em branco para manter a atual">
       </div>
       <button class="btn" onclick="salvarColab()">Salvar</button>
@@ -181,19 +273,82 @@ async function rpc(nome, args){
   return data;
 }
 
-async function entrar(){
-  const mat = $('loginMat').value.trim(), senha = $('loginSenha').value;
-  if (!mat) return flash('Digite a matrícula.');
-  $('btnEntrar').disabled = true;
-  try{
-    const r = (await rpc('entrar', { p_matricula: mat, p_senha: senha || null }))[0];
-    if (r.precisa_senha) { $('boxSenha').classList.remove('hidden'); $('loginSenha').focus(); return flash('Digite sua senha.', 'ok'); }
-    token = r.token; usuario = r; guardar('sessao', JSON.stringify({ token, usuario }));
-    $('loginSenha').value = '';
-    await abrirApp();
-  }catch(e){ flash(e.message.includes('Senha') || e.message.includes('Matrícula') ? e.message : 'Erro ao entrar: ' + e.message); }
-  finally{ $('btnEntrar').disabled = false; }
+let matPrimeiro = '', pendSel = null;
+const FORMS = ['fEntrar','fPrimeiro','fCriar','fVincular','fNovo','fEsqueci','fAviso'];
+function modo(m){
+  const mapa = {entrar:'fEntrar', primeiro:'fPrimeiro', criar:'fCriar', vincular:'fVincular', novo:'fNovo', esqueci:'fEsqueci', aviso:'fAviso'};
+  FORMS.forEach(f => $(f).classList.toggle('hidden', f !== mapa[m]));
+  $('tabEntrar').classList.toggle('on', m==='entrar' || m==='esqueci');
+  $('tabPrimeiro').classList.toggle('on', ['primeiro','criar','vincular','novo'].includes(m));
+  $('flash').innerHTML = '';
+  if (m==='esqueci' && $('loginMat').value) $('eMat').value = $('loginMat').value;
+  if (m==='primeiro' && $('loginMat').value && !$('paMat').value) $('paMat').value = $('loginMat').value;
 }
+function verSenha(id, b){ const i=$(id); i.type = i.type==='password' ? 'text' : 'password'; b.textContent = i.type==='password' ? 'Mostrar' : 'Ocultar'; }
+function aviso(txt){ $('avisoTxt').innerHTML = txt; modo('aviso'); }
+function msgErro(e){ return (e && e.message) || String(e); }
+async function ocupado(btn, fn){ const b=$(btn); b.disabled=true; try{ await fn(); }catch(e){ flash(msgErro(e)); } finally{ b.disabled=false; } }
+function conferirSenhas(a,b){
+  if ($(a).value.length < 6) throw new Error('A senha precisa ter pelo menos 6 caracteres.');
+  if ($(a).value !== $(b).value) throw new Error('As senhas não conferem.');
+}
+async function iniciarSessao(r){
+  token = r.token; usuario = r; guardar('sessao', JSON.stringify({ token, usuario }));
+  ['loginSenha','paSenha','paSenha2','vSenha','vSenha2','nSenha','nSenha2'].forEach(i=>$(i).value='');
+  await abrirApp();
+}
+
+function entrar(){ return ocupado('btnEntrar', async () => {
+  const mat = $('loginMat').value.trim(), senha = $('loginSenha').value;
+  if (!mat || !senha) throw new Error('Digite matrícula e senha.');
+  const r = (await rpc('entrar', { p_matricula: mat, p_senha: senha }))[0];
+  await iniciarSessao(r);
+}); }
+
+function verificarMatricula(){ return ocupado('btnVerificar', async () => {
+  const mat = $('paMat').value.trim(); if (!mat) throw new Error('Digite sua matrícula.');
+  matPrimeiro = mat;
+  const st = (await rpc('status_matricula', { p_matricula: mat }))[0];
+  if (st.status === 'sem_senha'){ $('paNome').textContent = st.nome; modo('criar'); return; }
+  if (st.status === 'com_senha'){ $('loginMat').value = mat; modo('entrar'); flash('Essa matrícula já tem senha. Entre com ela ou use "Esqueci minha senha".', 'ok'); return; }
+  if (st.status === 'aguardando'){ aviso('Seu cadastro já foi enviado e está <b>aguardando aprovação</b> de um Squad ou Líder.'); return; }
+  if (st.status === 'inativo'){ throw new Error('Cadastro inativo. Fale com seu líder.'); }
+  const lista = await rpc('listar_perfis_pendentes');
+  pendSel = null; $('boxVinc').classList.add('hidden'); $('nMat').value = mat;
+  if (!lista.length) { modo('novo'); return; }
+  $('listaPend').innerHTML = lista.map(p => `<button type="button" data-id="${esc(p.id)}">${esc(p.nome)}</button>`).join('');
+  $('listaPend').querySelectorAll('button').forEach(b => b.onclick = () => {
+    $('listaPend').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); pendSel = b.dataset.id; $('boxVinc').classList.remove('hidden'); $('vSenha').focus();
+  });
+  modo('vincular');
+}); }
+
+function criarSenha(){ return ocupado('btnCriar', async () => {
+  conferirSenhas('paSenha','paSenha2');
+  const r = (await rpc('criar_senha', { p_matricula: matPrimeiro, p_senha: $('paSenha').value }))[0];
+  await iniciarSessao(r);
+}); }
+
+function vincular(){ return ocupado('btnVincular', async () => {
+  if (!pendSel) throw new Error('Toque no seu nome na lista.');
+  conferirSenhas('vSenha','vSenha2');
+  const r = (await rpc('vincular_perfil', { p_pendente: pendSel, p_matricula: matPrimeiro, p_senha: $('vSenha').value }))[0];
+  await iniciarSessao(r);
+}); }
+
+function solicitarCadastro(){ return ocupado('btnNovo', async () => {
+  conferirSenhas('nSenha','nSenha2');
+  await rpc('solicitar_cadastro', { p_matricula: matPrimeiro, p_nome: $('nNome').value, p_senha: $('nSenha').value });
+  ['nNome','nSenha','nSenha2'].forEach(i=>$(i).value='');
+  aviso('Cadastro enviado! Assim que um Squad ou Líder aprovar, entre com sua matrícula e a senha que você criou.');
+}); }
+
+function esqueci(){ return ocupado('btnEsqueci', async () => {
+  const mat = $('eMat').value.trim(); if (!mat) throw new Error('Digite sua matrícula.');
+  await rpc('esqueci_senha', { p_matricula: mat });
+  aviso('Pedido enviado. Avise um Squad ou Líder para liberar a redefinição. Depois, entre por <b>Primeiro acesso</b> e crie uma senha nova.');
+}); }
 
 async function abrirApp(){
   $('userName').innerHTML = `${esc(usuario.nome)}<small>${nomePapel(usuario.papel)} · ${esc(usuario.matricula)}</small>`;
@@ -206,9 +361,9 @@ async function abrirApp(){
 function sair(){
   if (token) db.rpc('sair', { p_token: token });
   guardar('sessao', null); usuario = null; token = null;
-  $('boxSenha').classList.add('hidden'); $('loginSenha').value = '';
+  $('loginSenha').value = ''; modo('entrar');
   ['topbar','nav','scrAvaliar','scrResultados','scrDetalhe','scrEquipe'].forEach(i=>$(i).classList.add('hidden'));
-  $('scrLogin').classList.remove('hidden'); $('loginMat').value = '';
+  $('scrLogin').classList.remove('hidden');
 }
 
 async function carregarBase(){
@@ -300,10 +455,19 @@ async function verDetalhe(id){
 
 async function carregarEquipe(){
   colaboradores = await rpc('listar_colaboradores', { p_token: token });
+  const resets = colaboradores.filter(c => c.pediu_reset), novos = colaboradores.filter(c => c.aguardando);
+  $('pedidosTop').classList.toggle('hidden', !resets.length && !novos.length);
+  $('pedidosTop').innerHTML = '<h3 style="margin-top:0">Pedidos pendentes</h3>' +
+    novos.map(c => `<div class="req"><div><div class="t">${esc(c.nome)}</div><div class="s">Cadastro novo · ${esc(c.matricula)}</div></div>
+      <div class="acts"><button class="mini" onclick="aprovar('${esc(c.matricula)}',true)">Aprovar</button><button class="mini no" onclick="aprovar('${esc(c.matricula)}',false)">Recusar</button></div></div>`).join('') +
+    resets.map(c => `<div class="req"><div><div class="t">${esc(c.nome)}</div><div class="s">Esqueceu a senha · ${esc(c.matricula)}</div></div>
+      <div class="acts"><button class="mini" onclick="liberar('${esc(c.matricula)}')">Liberar</button></div></div>`).join('');
   $('listaEquipe').innerHTML = `<h3 style="margin-top:0">Equipe (${colaboradores.length})</h3>` + colaboradores.map(c =>
     `<div class="row" style="cursor:pointer" onclick="editarColab('${esc(c.matricula)}')"><div><div class="t">${esc(c.nome)}</div>
-    <div class="s">${esc(c.matricula)} · ${nomePapel(c.papel)}${c.ativo?'':' · inativo'}${c.matricula.startsWith('PEND-')?' · <b style="color:var(--warn)">matrícula pendente</b>':''}</div></div><span class="muted">Editar</span></div>`).join('');
+    <div class="s">${esc(c.matricula)} · ${nomePapel(c.papel)}${c.ativo?'':' · inativo'}${c.matricula.startsWith('PEND-')?' · <b style="color:var(--warn)">matrícula pendente</b>':''}${c.aguardando?' · <b style="color:var(--warn)">aguardando aprovação</b>':(!c.tem_senha && !c.matricula.startsWith('PEND-')?' · sem senha ainda':'')}</div></div><span class="muted">Editar</span></div>`).join('');
 }
+async function aprovar(m, ok){ try{ await rpc('aprovar_cadastro', { p_token: token, p_matricula: m, p_aprovar: ok }); flash(ok?'Cadastro aprovado.':'Cadastro recusado.','ok'); await carregarEquipe(); await carregarBase(); }catch(e){ flash(msgErro(e)); } }
+async function liberar(m){ try{ await rpc('liberar_redefinicao', { p_token: token, p_matricula: m }); flash('Redefinição liberada. A pessoa deve entrar por "Primeiro acesso".','ok'); await carregarEquipe(); }catch(e){ flash(msgErro(e)); } }
 function limparEq(){ ['eqMat','eqNome','eqSenha'].forEach(i=>$(i).value=''); $('eqPapel').value='colaborador'; $('eqAtivo').value='true'; editando=null; $('eqTitulo').textContent='Cadastrar colaborador'; toggleEqSenha(); }
 function editarColab(m){
   const c = colaboradores.find(x=>x.matricula===m); if(!c) return;
@@ -329,10 +493,9 @@ function ir(t){
   if (t==='Equipe') carregarEquipe();
 }
 
-function toggleEqSenha(){ $('boxEqSenha').classList.toggle('hidden', $('eqPapel').value === 'colaborador'); }
+function toggleEqSenha(){ $('boxEqSenha').classList.remove('hidden'); $('eqSenhaLbl').textContent = $('eqPapel').value==='colaborador' ? 'Senha (opcional, o colaborador pode criar no primeiro acesso)' : 'Senha (obrigatória para Squad/Líder)'; }
 $('eqPapel').addEventListener('change', toggleEqSenha);
-['loginMat','loginSenha'].forEach(i => $(i).addEventListener('keydown', e => { if (e.key==='Enter') entrar(); }));
-$('loginMat').addEventListener('input', () => { $('boxSenha').classList.add('hidden'); $('loginSenha').value=''; });
+toggleEqSenha();
 try{ const s = JSON.parse(ler('sessao') || 'null'); if (s && s.token) { token = s.token; usuario = s.usuario; abrirApp(); } }catch(e){}
 </script>
 </body>
