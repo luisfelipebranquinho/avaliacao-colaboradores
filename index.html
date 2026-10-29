@@ -124,7 +124,7 @@
   <!-- EQUIPE (líder) -->
   <section id="scrEquipe" class="hidden">
     <div class="card">
-      <h3 style="margin-top:0">Cadastrar / editar colaborador</h3>
+      <h3 style="margin-top:0" id="eqTitulo">Cadastrar colaborador</h3>
       <label for="eqMat">Matrícula</label>
       <input id="eqMat" inputmode="numeric" style="margin-bottom:10px">
       <label for="eqNome">Nome</label>
@@ -142,6 +142,7 @@
         <input id="eqSenha" type="password" autocomplete="new-password" placeholder="Deixe em branco para manter a atual">
       </div>
       <button class="btn" onclick="salvarColab()">Salvar</button>
+      <button class="btn ghost" onclick="limparEq()">Limpar / novo cadastro</button>
     </div>
     <div class="card" id="listaEquipe"></div>
   </section>
@@ -159,7 +160,7 @@ const SUPABASE_URL = 'https://btaqzpouabedjkkxuunf.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_jCd0bQLvUb4UStdZsRR7WA_OMxAVvG8';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let usuario = null, token = null, procedimentos = [], colaboradores = [], respostas = {}, avaliacoes = [];
+let usuario = null, token = null, editando = null, procedimentos = [], colaboradores = [], respostas = {}, avaliacoes = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const gestor = () => usuario && ['squad','lider'].includes(usuario.papel);
@@ -214,7 +215,7 @@ async function carregarBase(){
   [procedimentos, colaboradores] = await Promise.all([
     rpc('listar_procedimentos'), rpc('listar_colaboradores', { p_token: token })
   ]);
-  const opts = colaboradores.filter(c => c.ativo && c.matricula !== usuario.matricula)
+  const opts = colaboradores.filter(c => c.ativo && c.papel === 'colaborador' && c.matricula !== usuario.matricula)
     .map(c => `<option value="${esc(c.matricula)}">${esc(c.nome)} (${esc(c.matricula)})</option>`).join('');
   $('selAvaliado').innerHTML = `<option value="">Selecione...</option>` + opts;
   novaAvaliacao();
@@ -301,17 +302,18 @@ async function carregarEquipe(){
   colaboradores = await rpc('listar_colaboradores', { p_token: token });
   $('listaEquipe').innerHTML = `<h3 style="margin-top:0">Equipe (${colaboradores.length})</h3>` + colaboradores.map(c =>
     `<div class="row" style="cursor:pointer" onclick="editarColab('${esc(c.matricula)}')"><div><div class="t">${esc(c.nome)}</div>
-    <div class="s">${esc(c.matricula)} · ${nomePapel(c.papel)}${c.ativo?'':' · inativo'}</div></div><span class="muted">Editar</span></div>`).join('');
+    <div class="s">${esc(c.matricula)} · ${nomePapel(c.papel)}${c.ativo?'':' · inativo'}${c.matricula.startsWith('PEND-')?' · <b style="color:var(--warn)">matrícula pendente</b>':''}</div></div><span class="muted">Editar</span></div>`).join('');
 }
+function limparEq(){ ['eqMat','eqNome','eqSenha'].forEach(i=>$(i).value=''); $('eqPapel').value='colaborador'; $('eqAtivo').value='true'; editando=null; $('eqTitulo').textContent='Cadastrar colaborador'; toggleEqSenha(); }
 function editarColab(m){
   const c = colaboradores.find(x=>x.matricula===m); if(!c) return;
-  $('eqMat').value=c.matricula; $('eqNome').value=c.nome; $('eqPapel').value=c.papel; $('eqAtivo').value=String(c.ativo); $('eqSenha').value=''; toggleEqSenha();
-  window.scrollTo({top:0,behavior:'smooth'});
+  editando=c.matricula; $('eqMat').value=c.matricula; $('eqNome').value=c.nome; $('eqPapel').value=c.papel; $('eqAtivo').value=String(c.ativo); $('eqSenha').value=''; toggleEqSenha();
+  $('eqTitulo').textContent='Editando '+c.nome; window.scrollTo({top:0,behavior:'smooth'});
 }
 async function salvarColab(){
   try{
-    await rpc('salvar_colaborador', { p_token: token, p_matricula: $('eqMat').value, p_nome: $('eqNome').value, p_papel: $('eqPapel').value, p_ativo: $('eqAtivo').value==='true', p_senha: $('eqSenha').value || null });
-    flash('Colaborador salvo!', 'ok'); ['eqMat','eqNome','eqSenha'].forEach(i=>$(i).value='');
+    await rpc('salvar_colaborador', { p_token: token, p_matricula: $('eqMat').value, p_nome: $('eqNome').value, p_papel: $('eqPapel').value, p_ativo: $('eqAtivo').value==='true', p_senha: $('eqSenha').value || null, p_matricula_antiga: editando });
+    flash('Colaborador salvo!', 'ok'); ['eqMat','eqNome','eqSenha'].forEach(i=>$(i).value=''); editando=null; $('eqTitulo').textContent='Cadastrar colaborador';
     await carregarEquipe(); await carregarBase();
   }catch(e){ flash(e.message); }
 }
