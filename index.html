@@ -83,7 +83,11 @@
       <h2>Avaliação de Procedimentos</h2>
       <p class="muted">Digite sua matrícula para entrar.</p>
       <label for="loginMat">Matrícula</label>
-      <input id="loginMat" inputmode="numeric" autocomplete="off" placeholder="Ex.: 12345">
+      <input id="loginMat" inputmode="numeric" autocomplete="username" placeholder="Ex.: 12345">
+      <div id="boxSenha" class="hidden" style="margin-top:12px">
+        <label for="loginSenha">Senha</label>
+        <input id="loginSenha" type="password" autocomplete="current-password" placeholder="Senha de Squad/líder">
+      </div>
       <button class="btn" id="btnEntrar" onclick="entrar()">Entrar</button>
     </div>
   </section>
@@ -128,9 +132,14 @@
       <select id="eqPapel" style="margin-bottom:10px">
         <option value="colaborador">Colaborador</option>
         <option value="lider">Líder</option>
+        <option value="squad">Squad</option>
       </select>
       <label for="eqAtivo">Situação</label>
-      <select id="eqAtivo"><option value="true">Ativo</option><option value="false">Inativo</option></select>
+      <select id="eqAtivo" style="margin-bottom:10px"><option value="true">Ativo</option><option value="false">Inativo</option></select>
+      <div id="boxEqSenha" class="hidden">
+        <label for="eqSenha">Senha (Squad/líder)</label>
+        <input id="eqSenha" type="password" autocomplete="new-password" placeholder="Deixe em branco para manter a atual">
+      </div>
       <button class="btn" onclick="salvarColab()">Salvar</button>
     </div>
     <div class="card" id="listaEquipe"></div>
@@ -149,9 +158,11 @@ const SUPABASE_URL = 'https://btaqzpouabedjkkxuunf.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_jCd0bQLvUb4UStdZsRR7WA_OMxAVvG8';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let usuario = null, procedimentos = [], colaboradores = [], respostas = {}, avaliacoes = [];
+let usuario = null, token = null, procedimentos = [], colaboradores = [], respostas = {}, avaliacoes = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const gestor = () => usuario && ['squad','lider'].includes(usuario.papel);
+const nomePapel = p => ({squad:'Squad',lider:'Líder',colaborador:'Colaborador'})[p] || p;
 const cls = n => n >= 80 ? 'hi' : n >= 60 ? 'mid' : 'lo';
 const dt = s => new Date(s).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
 
@@ -168,32 +179,39 @@ async function rpc(nome, args){
   return data;
 }
 
-async function entrar(mat){
-  mat = (mat ?? $('loginMat').value).trim();
+async function entrar(){
+  const mat = $('loginMat').value.trim(), senha = $('loginSenha').value;
   if (!mat) return flash('Digite a matrícula.');
   $('btnEntrar').disabled = true;
   try{
-    const r = await rpc('entrar', { p_matricula: mat });
-    if (!r || !r.length) { guardar('matricula', null); return flash('Matrícula não encontrada.'); }
-    usuario = r[0]; guardar('matricula', usuario.matricula);
-    $('userName').innerHTML = `${esc(usuario.nome)}<small>${usuario.papel==='lider'?'Líder':'Colaborador'} · ${esc(usuario.matricula)}</small>`;
-    $('navEquipe').classList.toggle('hidden', usuario.papel !== 'lider');
-    $('topbar').classList.remove('hidden'); $('nav').classList.remove('hidden'); $('scrLogin').classList.add('hidden');
-    await carregarBase();
-    ir('Avaliar');
-  }catch(e){ flash('Erro ao entrar: ' + e.message); }
+    const r = (await rpc('entrar', { p_matricula: mat, p_senha: senha || null }))[0];
+    if (r.precisa_senha) { $('boxSenha').classList.remove('hidden'); $('loginSenha').focus(); return flash('Digite sua senha.', 'ok'); }
+    token = r.token; usuario = r; guardar('sessao', JSON.stringify({ token, usuario }));
+    $('loginSenha').value = '';
+    await abrirApp();
+  }catch(e){ flash(e.message.includes('Senha') || e.message.includes('Matrícula') ? e.message : 'Erro ao entrar: ' + e.message); }
   finally{ $('btnEntrar').disabled = false; }
 }
 
+async function abrirApp(){
+  $('userName').innerHTML = `${esc(usuario.nome)}<small>${nomePapel(usuario.papel)} · ${esc(usuario.matricula)}</small>`;
+  $('navEquipe').classList.toggle('hidden', !gestor());
+  $('topbar').classList.remove('hidden'); $('nav').classList.remove('hidden'); $('scrLogin').classList.add('hidden');
+  try{ await carregarBase(); ir('Avaliar'); }
+  catch(e){ sair(); flash(e.message); }
+}
+
 function sair(){
-  guardar('matricula', null); usuario = null;
+  if (token) db.rpc('sair', { p_token: token });
+  guardar('sessao', null); usuario = null; token = null;
+  $('boxSenha').classList.add('hidden'); $('loginSenha').value = '';
   ['topbar','nav','scrAvaliar','scrResultados','scrDetalhe','scrEquipe'].forEach(i=>$(i).classList.add('hidden'));
   $('scrLogin').classList.remove('hidden'); $('loginMat').value = '';
 }
 
 async function carregarBase(){
   [procedimentos, colaboradores] = await Promise.all([
-    rpc('listar_procedimentos'), rpc('listar_colaboradores', { p_matricula: usuario.matricula })
+    rpc('listar_procedimentos'), rpc('listar_colaboradores', { p_token: token })
   ]);
   const opts = colaboradores.filter(c => c.ativo && c.matricula !== usuario.matricula)
     .map(c => `<option value="${esc(c.matricula)}">${esc(c.nome)} (${esc(c.matricula)})</option>`).join('');
@@ -235,7 +253,7 @@ async function salvar(){
   $('btnSalvar').disabled = true;
   try{
     await rpc('salvar_avaliacao', {
-      p_avaliador: usuario.matricula, p_avaliado: avaliado,
+      p_token: token, p_avaliado: avaliado,
       p_respostas: Object.entries(respostas).map(([k,v]) => ({ procedimento_id:+k, valor:v })),
       p_observacao: $('obs').value
     });
@@ -247,18 +265,18 @@ async function salvar(){
 async function carregarResultados(){
   $('listaAval').innerHTML = '<p class="muted">Carregando...</p>';
   try{
-    avaliacoes = await rpc('listar_avaliacoes', { p_matricula: usuario.matricula });
+    avaliacoes = await rpc('listar_avaliacoes', { p_token: token });
   }catch(e){ return flash(e.message); }
   // resumo por colaborador avaliado
   const por = {};
   avaliacoes.forEach(a => { (por[a.avaliado] ??= { nome:a.avaliado_nome, soma:0, n:0 }); por[a.avaliado].soma += +a.pontuacao; por[a.avaliado].n++; });
   const lista = Object.values(por).sort((a,b)=>b.soma/b.n - a.soma/a.n);
-  $('resumo').innerHTML = `<h3 style="margin-top:0">${usuario.papel==='lider'?'Desempenho da equipe':'Quem você avaliou'}</h3>` +
+  $('resumo').innerHTML = `<h3 style="margin-top:0">${gestor()?'Desempenho da equipe':'Quem você avaliou'}</h3>` +
     (lista.length ? lista.map(c => { const m = c.soma/c.n; return `<div class="row"><div><div class="t">${esc(c.nome)}</div><div class="s">${c.n} avaliação(ões) · média</div></div><div class="score ${cls(m)}">${m.toFixed(0)}%</div></div>`; }).join('')
                   : '<p class="muted">Nenhuma avaliação ainda.</p>');
   $('listaAval').innerHTML = `<h3 style="margin-top:0">Histórico</h3>` +
     (avaliacoes.length ? avaliacoes.map(a => `<div class="row" onclick="verDetalhe(${a.id})" style="cursor:pointer">
-      <div><div class="t">${esc(a.avaliado_nome)}</div><div class="s">${dt(a.criado_em)}${usuario.papel==='lider'?' · por '+esc(a.avaliador_nome):''}</div></div>
+      <div><div class="t">${esc(a.avaliado_nome)}</div><div class="s">${dt(a.criado_em)}${gestor()?' · por '+esc(a.avaliador_nome):''}</div></div>
       <div class="score ${cls(+a.pontuacao)}">${(+a.pontuacao).toFixed(0)}%</div></div>`).join('')
       : '<p class="muted">Nada por aqui.</p>');
 }
@@ -266,7 +284,7 @@ async function carregarResultados(){
 async function verDetalhe(id){
   const a = avaliacoes.find(x => x.id === id);
   try{
-    const itens = await rpc('detalhe_avaliacao', { p_matricula: usuario.matricula, p_id: id });
+    const itens = await rpc('detalhe_avaliacao', { p_token: token, p_id: id });
     $('detalhe').innerHTML = `<h3 style="margin-top:0">${esc(a.avaliado_nome)}</h3>
       <p class="muted">${dt(a.criado_em)} · avaliado por ${esc(a.avaliador_nome)}</p>
       <div class="score ${cls(+a.pontuacao)}" style="display:inline-block;margin-bottom:8px">${(+a.pontuacao).toFixed(0)}%</div>` +
@@ -279,20 +297,20 @@ async function verDetalhe(id){
 }
 
 async function carregarEquipe(){
-  colaboradores = await rpc('listar_colaboradores', { p_matricula: usuario.matricula });
+  colaboradores = await rpc('listar_colaboradores', { p_token: token });
   $('listaEquipe').innerHTML = `<h3 style="margin-top:0">Equipe (${colaboradores.length})</h3>` + colaboradores.map(c =>
     `<div class="row" style="cursor:pointer" onclick="editarColab('${esc(c.matricula)}')"><div><div class="t">${esc(c.nome)}</div>
-    <div class="s">${esc(c.matricula)} · ${c.papel==='lider'?'Líder':'Colaborador'}${c.ativo?'':' · inativo'}</div></div><span class="muted">Editar</span></div>`).join('');
+    <div class="s">${esc(c.matricula)} · ${nomePapel(c.papel)}${c.ativo?'':' · inativo'}</div></div><span class="muted">Editar</span></div>`).join('');
 }
 function editarColab(m){
   const c = colaboradores.find(x=>x.matricula===m); if(!c) return;
-  $('eqMat').value=c.matricula; $('eqNome').value=c.nome; $('eqPapel').value=c.papel; $('eqAtivo').value=String(c.ativo);
+  $('eqMat').value=c.matricula; $('eqNome').value=c.nome; $('eqPapel').value=c.papel; $('eqAtivo').value=String(c.ativo); $('eqSenha').value=''; toggleEqSenha();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 async function salvarColab(){
   try{
-    await rpc('salvar_colaborador', { p_lider: usuario.matricula, p_matricula: $('eqMat').value, p_nome: $('eqNome').value, p_papel: $('eqPapel').value, p_ativo: $('eqAtivo').value==='true' });
-    flash('Colaborador salvo!', 'ok'); ['eqMat','eqNome'].forEach(i=>$(i).value='');
+    await rpc('salvar_colaborador', { p_token: token, p_matricula: $('eqMat').value, p_nome: $('eqNome').value, p_papel: $('eqPapel').value, p_ativo: $('eqAtivo').value==='true', p_senha: $('eqSenha').value || null });
+    flash('Colaborador salvo!', 'ok'); ['eqMat','eqNome','eqSenha'].forEach(i=>$(i).value='');
     await carregarEquipe(); await carregarBase();
   }catch(e){ flash(e.message); }
 }
@@ -308,8 +326,11 @@ function ir(t){
   if (t==='Equipe') carregarEquipe();
 }
 
-$('loginMat').addEventListener('keydown', e => { if (e.key==='Enter') entrar(); });
-const salva = ler('matricula'); if (salva) entrar(salva);
+function toggleEqSenha(){ $('boxEqSenha').classList.toggle('hidden', $('eqPapel').value === 'colaborador'); }
+$('eqPapel').addEventListener('change', toggleEqSenha);
+['loginMat','loginSenha'].forEach(i => $(i).addEventListener('keydown', e => { if (e.key==='Enter') entrar(); }));
+$('loginMat').addEventListener('input', () => { $('boxSenha').classList.add('hidden'); $('loginSenha').value=''; });
+try{ const s = JSON.parse(ler('sessao') || 'null'); if (s && s.token) { token = s.token; usuario = s.usuario; abrirApp(); } }catch(e){}
 </script>
 </body>
 </html>
