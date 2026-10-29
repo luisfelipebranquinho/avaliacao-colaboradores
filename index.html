@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#00843d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Avaliação">
+<title>Avaliação de Procedimentos</title>
+<style>
+    :root{
+    --bg:#f2f5f3; --card:#ffffff; --ink:#1b2620; --muted:#5f6d65; --line:#dde5e0;
+    --brand:#00843d; --brand-dark:#006b32; --brand-2:#00a651; --accent:#c4d600;
+    --ok:#00a651; --bad:#d6342c; --warn:#e8a400;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0e1511; --card:#17211b; --ink:#e9f0ec; --muted:#9aaba1; --line:#26332b;
+      --brand:#00843d; --brand-dark:#006b32; --brand-2:#2fc373; --accent:#c4d600; }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+  header{position:sticky;top:0;z-index:5;background:var(--brand);border-bottom:4px solid var(--accent);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  header h1{font-size:17px;margin:0;font-weight:650}
+  header small{display:block;opacity:.8;font-size:12px;font-weight:400}
+  header button{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:10px;padding:8px 12px;font-size:14px}
+  main{max-width:640px;margin:0 auto;padding:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+  label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px}
+  input,select,textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}
+  textarea{min-height:80px;resize:vertical}
+  .btn{display:block;width:100%;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:650;background:var(--brand);color:#fff;margin-top:12px}
+  .btn:active{background:var(--brand-dark)}
+  .btn:disabled{opacity:.5}
+  .btn.ghost{background:transparent;color:var(--brand-2);border:1px solid var(--line)}
+  .proc{border-top:1px solid var(--line);padding:14px 0}
+  .proc:first-of-type{border-top:0;padding-top:0}
+  .proc h3{font-size:15px;margin:0 0 2px}
+  .proc p{margin:0 0 10px;color:var(--muted);font-size:13px}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;min-height:44px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;font:inherit;font-weight:600}
+  .seg button.on.sim{background:var(--ok);border-color:var(--ok);color:#fff}
+  .seg button.on.nao{background:var(--bad);border-color:var(--bad);color:#fff}
+  .seg button.on.num{background:var(--brand);border-color:var(--brand);color:#fff}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:var(--bg);color:var(--muted);border:1px solid var(--line);margin-left:6px;vertical-align:middle}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+  .row:first-child{border-top:0}
+  .row .t{font-weight:600}
+  .row .s{font-size:13px;color:var(--muted)}
+  .score{min-width:56px;text-align:center;font-weight:700;border-radius:10px;padding:6px 8px;color:#fff}
+  .hi{background:var(--ok)} .mid{background:var(--warn);color:#1b2620} .lo{background:var(--bad)}
+  nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:5}
+  nav button{flex:1;background:none;border:0;padding:12px 4px;font:inherit;font-size:13px;color:var(--muted);font-weight:600}
+  nav button.on{color:var(--brand-2);box-shadow:inset 0 3px 0 var(--accent)}
+  .hidden{display:none!important}
+  .msg{padding:12px;border-radius:10px;margin-bottom:12px;font-size:14px}
+  .msg.err{background:#fdecea;color:#8a1f14} .msg.ok{background:#e6f4ec;color:#145c33}
+  .progress{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:8px}
+  .progress div{height:100%;background:linear-gradient(90deg,var(--brand),var(--accent));width:0;transition:width .2s}
+  .center{text-align:center}
+  .muted{color:var(--muted);font-size:14px}
+  .login-wrap{min-height:80vh;display:flex;flex-direction:column;justify-content:center}
+  .login-wrap h2{margin:0 0 4px;color:var(--brand)}
+  .login-wrap .card{border-top:6px solid var(--brand);box-shadow:0 8px 24px rgba(0,80,40,.08)}
+  .badge{display:inline-block;background:var(--accent);color:#1b2620;font-weight:700;font-size:12px;padding:3px 10px;border-radius:99px;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<header id="topbar" class="hidden">
+  <h1 id="userName">—<small id="userRole"></small></h1>
+  <button onclick="sair()">Sair</button>
+</header>
+
+<main>
+  <div id="flash"></div>
+
+  <!-- LOGIN -->
+  <section id="scrLogin" class="login-wrap">
+    <div class="card">
+      <span class="badge">Checklist</span>
+      <h2>Avaliação de Procedimentos</h2>
+      <p class="muted">Digite sua matrícula para entrar.</p>
+      <label for="loginMat">Matrícula</label>
+      <input id="loginMat" inputmode="numeric" autocomplete="off" placeholder="Ex.: 12345">
+      <button class="btn" id="btnEntrar" onclick="entrar()">Entrar</button>
+    </div>
+  </section>
+
+  <!-- AVALIAR -->
+  <section id="scrAvaliar" class="hidden">
+    <div class="card">
+      <label for="selAvaliado">Quem você está avaliando?</label>
+      <select id="selAvaliado"></select>
+      <div class="progress"><div id="prog"></div></div>
+      <div class="muted" id="progTxt" style="margin-top:6px"></div>
+    </div>
+    <div class="card" id="listaProc"></div>
+    <div class="card">
+      <label for="obs">Observações (opcional)</label>
+      <textarea id="obs" placeholder="Pontos de melhoria, elogios..."></textarea>
+      <button class="btn" id="btnSalvar" onclick="salvar()">Salvar avaliação</button>
+    </div>
+  </section>
+
+  <!-- RESULTADOS -->
+  <section id="scrResultados" class="hidden">
+    <div class="card" id="resumo"></div>
+    <div class="card" id="listaAval"></div>
+  </section>
+
+  <!-- DETALHE -->
+  <section id="scrDetalhe" class="hidden">
+    <div class="card" id="detalhe"></div>
+    <button class="btn ghost" onclick="ir('Resultados')">Voltar</button>
+  </section>
+
+  <!-- EQUIPE (líder) -->
+  <section id="scrEquipe" class="hidden">
+    <div class="card">
+      <h3 style="margin-top:0">Cadastrar / editar colaborador</h3>
+      <label for="eqMat">Matrícula</label>
+      <input id="eqMat" inputmode="numeric" style="margin-bottom:10px">
+      <label for="eqNome">Nome</label>
+      <input id="eqNome" style="margin-bottom:10px">
+      <label for="eqPapel">Perfil</label>
+      <select id="eqPapel" style="margin-bottom:10px">
+        <option value="colaborador">Colaborador</option>
+        <option value="lider">Líder</option>
+      </select>
+      <label for="eqAtivo">Situação</label>
+      <select id="eqAtivo"><option value="true">Ativo</option><option value="false">Inativo</option></select>
+      <button class="btn" onclick="salvarColab()">Salvar</button>
+    </div>
+    <div class="card" id="listaEquipe"></div>
+  </section>
+</main>
+
+<nav id="nav" class="hidden">
+  <button data-t="Avaliar" onclick="ir('Avaliar')">Avaliar</button>
+  <button data-t="Resultados" onclick="ir('Resultados')">Resultados</button>
+  <button data-t="Equipe" id="navEquipe" onclick="ir('Equipe')" class="hidden">Equipe</button>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://btaqzpouabedjkkxuunf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_jCd0bQLvUb4UStdZsRR7WA_OMxAVvG8';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let usuario = null, procedimentos = [], colaboradores = [], respostas = {}, avaliacoes = [];
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cls = n => n >= 80 ? 'hi' : n >= 60 ? 'mid' : 'lo';
+const dt = s => new Date(s).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+
+function flash(txt, tipo='err'){
+  $('flash').innerHTML = txt ? `<div class="msg ${tipo}">${esc(txt)}</div>` : '';
+  if (txt) { window.scrollTo({top:0,behavior:'smooth'}); setTimeout(()=>{$('flash').innerHTML=''}, 4000); }
+}
+function guardar(k,v){ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,v) }catch(e){} }
+function ler(k){ try{ return localStorage.getItem(k) }catch(e){ return null } }
+
+async function rpc(nome, args){
+  const { data, error } = await db.rpc(nome, args);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+async function entrar(mat){
+  mat = (mat ?? $('loginMat').value).trim();
+  if (!mat) return flash('Digite a matrícula.');
+  $('btnEntrar').disabled = true;
+  try{
+    const r = await rpc('entrar', { p_matricula: mat });
+    if (!r || !r.length) { guardar('matricula', null); return flash('Matrícula não encontrada.'); }
+    usuario = r[0]; guardar('matricula', usuario.matricula);
+    $('userName').innerHTML = `${esc(usuario.nome)}<small>${usuario.papel==='lider'?'Líder':'Colaborador'} · ${esc(usuario.matricula)}</small>`;
+    $('navEquipe').classList.toggle('hidden', usuario.papel !== 'lider');
+    $('topbar').classList.remove('hidden'); $('nav').classList.remove('hidden'); $('scrLogin').classList.add('hidden');
+    await carregarBase();
+    ir('Avaliar');
+  }catch(e){ flash('Erro ao entrar: ' + e.message); }
+  finally{ $('btnEntrar').disabled = false; }
+}
+
+function sair(){
+  guardar('matricula', null); usuario = null;
+  ['topbar','nav','scrAvaliar','scrResultados','scrDetalhe','scrEquipe'].forEach(i=>$(i).classList.add('hidden'));
+  $('scrLogin').classList.remove('hidden'); $('loginMat').value = '';
+}
+
+async function carregarBase(){
+  [procedimentos, colaboradores] = await Promise.all([
+    rpc('listar_procedimentos'), rpc('listar_colaboradores', { p_matricula: usuario.matricula })
+  ]);
+  const opts = colaboradores.filter(c => c.ativo && c.matricula !== usuario.matricula)
+    .map(c => `<option value="${esc(c.matricula)}">${esc(c.nome)} (${esc(c.matricula)})</option>`).join('');
+  $('selAvaliado').innerHTML = `<option value="">Selecione...</option>` + opts;
+  novaAvaliacao();
+}
+
+function novaAvaliacao(){
+  respostas = {}; $('obs').value = ''; $('selAvaliado').value = '';
+  $('listaProc').innerHTML = procedimentos.map((p,i) => {
+    const botoes = p.tipo === 'sim_nao'
+      ? `<button class="sim" data-v="1">Fez</button><button class="nao" data-v="0">Não fez</button>`
+      : [0,1,2,3,4,5].map(n=>`<button class="num" data-v="${n}">${n}</button>`).join('');
+    return `<div class="proc">
+      <h3>${i+1}. ${esc(p.titulo)}<span class="tag">${p.tipo==='sim_nao'?'Fez / Não fez':'0 a 5'}</span></h3>
+      ${p.descricao?`<p>${esc(p.descricao)}</p>`:'<p></p>'}
+      <div class="seg" data-pid="${p.id}">${botoes}</div></div>`;
+  }).join('');
+  $('listaProc').querySelectorAll('.seg').forEach(seg => {
+    seg.addEventListener('click', ev => {
+      const b = ev.target.closest('button'); if (!b) return;
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); respostas[seg.dataset.pid] = +b.dataset.v; atualizarProgresso();
+    });
+  });
+  atualizarProgresso();
+}
+
+function atualizarProgresso(){
+  const n = Object.keys(respostas).length, t = procedimentos.length;
+  $('prog').style.width = (t ? n/t*100 : 0) + '%';
+  $('progTxt').textContent = `${n} de ${t} procedimentos respondidos`;
+}
+
+async function salvar(){
+  const avaliado = $('selAvaliado').value;
+  if (!avaliado) return flash('Selecione quem está sendo avaliado.');
+  if (Object.keys(respostas).length < procedimentos.length) return flash('Responda todos os procedimentos.');
+  $('btnSalvar').disabled = true;
+  try{
+    await rpc('salvar_avaliacao', {
+      p_avaliador: usuario.matricula, p_avaliado: avaliado,
+      p_respostas: Object.entries(respostas).map(([k,v]) => ({ procedimento_id:+k, valor:v })),
+      p_observacao: $('obs').value
+    });
+    flash('Avaliação salva!', 'ok'); novaAvaliacao();
+  }catch(e){ flash('Não foi possível salvar: ' + e.message); }
+  finally{ $('btnSalvar').disabled = false; }
+}
+
+async function carregarResultados(){
+  $('listaAval').innerHTML = '<p class="muted">Carregando...</p>';
+  try{
+    avaliacoes = await rpc('listar_avaliacoes', { p_matricula: usuario.matricula });
+  }catch(e){ return flash(e.message); }
+  // resumo por colaborador avaliado
+  const por = {};
+  avaliacoes.forEach(a => { (por[a.avaliado] ??= { nome:a.avaliado_nome, soma:0, n:0 }); por[a.avaliado].soma += +a.pontuacao; por[a.avaliado].n++; });
+  const lista = Object.values(por).sort((a,b)=>b.soma/b.n - a.soma/a.n);
+  $('resumo').innerHTML = `<h3 style="margin-top:0">${usuario.papel==='lider'?'Desempenho da equipe':'Quem você avaliou'}</h3>` +
+    (lista.length ? lista.map(c => { const m = c.soma/c.n; return `<div class="row"><div><div class="t">${esc(c.nome)}</div><div class="s">${c.n} avaliação(ões) · média</div></div><div class="score ${cls(m)}">${m.toFixed(0)}%</div></div>`; }).join('')
+                  : '<p class="muted">Nenhuma avaliação ainda.</p>');
+  $('listaAval').innerHTML = `<h3 style="margin-top:0">Histórico</h3>` +
+    (avaliacoes.length ? avaliacoes.map(a => `<div class="row" onclick="verDetalhe(${a.id})" style="cursor:pointer">
+      <div><div class="t">${esc(a.avaliado_nome)}</div><div class="s">${dt(a.criado_em)}${usuario.papel==='lider'?' · por '+esc(a.avaliador_nome):''}</div></div>
+      <div class="score ${cls(+a.pontuacao)}">${(+a.pontuacao).toFixed(0)}%</div></div>`).join('')
+      : '<p class="muted">Nada por aqui.</p>');
+}
+
+async function verDetalhe(id){
+  const a = avaliacoes.find(x => x.id === id);
+  try{
+    const itens = await rpc('detalhe_avaliacao', { p_matricula: usuario.matricula, p_id: id });
+    $('detalhe').innerHTML = `<h3 style="margin-top:0">${esc(a.avaliado_nome)}</h3>
+      <p class="muted">${dt(a.criado_em)} · avaliado por ${esc(a.avaliador_nome)}</p>
+      <div class="score ${cls(+a.pontuacao)}" style="display:inline-block;margin-bottom:8px">${(+a.pontuacao).toFixed(0)}%</div>` +
+      itens.map(i => {
+        const v = i.tipo==='sim_nao' ? (i.valor ? '✅ Fez' : '❌ Não fez') : `${i.valor} / 5`;
+        return `<div class="row"><div class="t" style="font-weight:500">${esc(i.titulo)}</div><div style="white-space:nowrap;font-weight:600">${v}</div></div>`;
+      }).join('') + (a.observacao ? `<div class="row"><div><div class="s">Observações</div>${esc(a.observacao)}</div></div>` : '');
+    mostrar('Detalhe');
+  }catch(e){ flash(e.message); }
+}
+
+async function carregarEquipe(){
+  colaboradores = await rpc('listar_colaboradores', { p_matricula: usuario.matricula });
+  $('listaEquipe').innerHTML = `<h3 style="margin-top:0">Equipe (${colaboradores.length})</h3>` + colaboradores.map(c =>
+    `<div class="row" style="cursor:pointer" onclick="editarColab('${esc(c.matricula)}')"><div><div class="t">${esc(c.nome)}</div>
+    <div class="s">${esc(c.matricula)} · ${c.papel==='lider'?'Líder':'Colaborador'}${c.ativo?'':' · inativo'}</div></div><span class="muted">Editar</span></div>`).join('');
+}
+function editarColab(m){
+  const c = colaboradores.find(x=>x.matricula===m); if(!c) return;
+  $('eqMat').value=c.matricula; $('eqNome').value=c.nome; $('eqPapel').value=c.papel; $('eqAtivo').value=String(c.ativo);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+async function salvarColab(){
+  try{
+    await rpc('salvar_colaborador', { p_lider: usuario.matricula, p_matricula: $('eqMat').value, p_nome: $('eqNome').value, p_papel: $('eqPapel').value, p_ativo: $('eqAtivo').value==='true' });
+    flash('Colaborador salvo!', 'ok'); ['eqMat','eqNome'].forEach(i=>$(i).value='');
+    await carregarEquipe(); await carregarBase();
+  }catch(e){ flash(e.message); }
+}
+
+function mostrar(t){
+  ['Avaliar','Resultados','Detalhe','Equipe'].forEach(x => $('scr'+x).classList.toggle('hidden', x!==t));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t===t || (t==='Detalhe' && b.dataset.t==='Resultados')));
+  window.scrollTo(0,0);
+}
+function ir(t){
+  mostrar(t);
+  if (t==='Resultados') carregarResultados();
+  if (t==='Equipe') carregarEquipe();
+}
+
+$('loginMat').addEventListener('keydown', e => { if (e.key==='Enter') entrar(); });
+const salva = ler('matricula'); if (salva) entrar(salva);
+</script>
+</body>
+</html>
