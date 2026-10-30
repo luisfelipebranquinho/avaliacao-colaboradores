@@ -62,6 +62,7 @@
   .seg button{min-height:48px;font-size:16px}
   .seg button.on{background:var(--ok);border-color:var(--ok);color:#fff}
   .seg button.on.nao{background:var(--bad);border-color:var(--bad);color:#fff}
+  input.auto{background:transparent;border-style:dashed;color:var(--ink);font-weight:600}
   .falta{margin:8px 0 0;text-align:center;font-size:13px}
   .det-grupo{margin:14px 0 4px;font-size:13px;font-weight:700;color:var(--brand-2);text-transform:uppercase;letter-spacing:.04em}
   .seg button.on.sim{background:var(--ok);border-color:var(--ok);color:#fff}
@@ -216,8 +217,8 @@
       </div>
       <label for="selAvaliado">Colaborador avaliado</label>
       <select id="selAvaliado"></select>
-      <label for="matAvaliado" class="mt">ou digite a matrícula</label>
-      <input id="matAvaliado" inputmode="numeric" autocomplete="off" placeholder="Matrícula do colaborador">
+      <label for="matAvaliado" class="mt">Matrícula</label>
+      <input id="matAvaliado" readonly tabindex="-1" class="auto" placeholder="Preenchida ao selecionar o colaborador">
       <label for="placa" class="mt">Placa do carro liberado</label>
       <input id="placa" class="placa" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC1D23">
       <p class="muted meta" id="metaAval"></p>
@@ -446,7 +447,7 @@ function sair(){
 async function carregarBase(){
   colaboradores = await rpc('listar_colaboradores', { p_token: token });
   const opts = colaboradores.filter(c => c.ativo && !c.aguardando && c.papel === 'colaborador' && c.matricula !== usuario.matricula)
-    .map(c => `<option value="${esc(c.matricula)}">${esc(c.nome)}${c.matricula.startsWith('PEND-') ? '' : ' (' + esc(c.matricula) + ')'}</option>`).join('');
+    .map(c => `<option value="${esc(c.matricula)}">${esc(c.nome)}</option>`).join('');
   $('selAvaliado').innerHTML = `<option value="">Selecione...</option>` + opts;
   novaAvaliacao();
 }
@@ -654,19 +655,8 @@ function ir(t){
 function toggleEqSenha(){ $('boxEqSenha').classList.remove('hidden'); $('eqSenhaLbl').textContent = $('eqPapel').value==='colaborador' ? 'Senha (opcional, o colaborador pode criar no primeiro acesso)' : 'Senha (obrigatória para Squad/Líder)'; }
 $('eqPapel').addEventListener('change', toggleEqSenha);
 toggleEqSenha();
-$('matAvaliado').addEventListener('input', () => {
-  const m = $('matAvaliado').value.trim();
-  const ok = [...$('selAvaliado').options].some(o => o.value === m);
-  if (ok) $('selAvaliado').value = m;
-  else if (m) $('selAvaliado').value = '';
-  atualizarBotao();
-});
-$('matAvaliado').addEventListener('change', () => {
-  const m = $('matAvaliado').value.trim();
-  if (m && $('selAvaliado').value !== m) flash('Matrícula não encontrada entre os colaboradores. Selecione na lista.');
-});
 $('selAvaliado').addEventListener('change', () => {
-  const v = $('selAvaliado').value; $('matAvaliado').value = v.startsWith('PEND-') ? '' : v;
+  const v = $('selAvaliado').value; $('matAvaliado').value = v.startsWith('PEND-') ? 'Matrícula pendente de cadastro' : v;
   atualizarBotao();
 });
 $('placa').addEventListener('input', () => { const el = $('placa'); el.value = normalizarPlaca(el.value).slice(0, 7); atualizarBotao(); });
