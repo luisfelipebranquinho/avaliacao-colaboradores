@@ -46,7 +46,7 @@
   .placa{text-transform:uppercase;letter-spacing:.12em;font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
   .meta{margin:10px 0 0;font-size:13px}
   .sticky-prog{position:sticky;top:calc(64px + env(safe-area-inset-top));z-index:4;padding:12px 16px}
-  details.grupo{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+  details.grupo{scroll-margin-top:calc(150px + env(safe-area-inset-top));background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
   details.grupo > summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px;cursor:pointer;font-weight:650;font-size:16px;-webkit-user-select:none;user-select:none}
   details.grupo > summary::-webkit-details-marker{display:none}
   details.grupo > summary .seta{transition:transform .2s;color:var(--muted)}
@@ -298,43 +298,31 @@ let usuario = null, token = null, editando = null, colaboradores = [], respostas
    tipo "nota" = botões de 0 a 5 · tipo "fezNao" = Fez / Não fez
    ========================================================= */
 const GRUPOS = [
-  { id: 'ext', titulo: 'Limpeza externa', tipo: 'nota', itens: [
-    { id: 'ext-01', texto: 'Para-lamas e caixas de roda dianteiras' },
-    { id: 'ext-02', texto: 'Laterais e caixas de roda traseiras' },
-    { id: 'ext-03', texto: 'Portas do lado esquerdo (lataria e vidros)' },
-    { id: 'ext-04', texto: 'Portas do lado direito (lataria e vidros)' },
-    { id: 'ext-05', texto: 'Caixa de ar / longarina dos dois lados' },
-    { id: 'ext-06', texto: 'Teto' },
-    { id: 'ext-07', texto: 'Traseira: tampa, vidro, lanternas, placa, para-choque e borracha do limpador' },
-    { id: 'ext-08', texto: 'Frente: para-brisa, capô, faróis e para-choque' },
+  { id: 'ext', titulo: 'Qualidade da higienização externa', tipo: 'nota', itens: [
+    { id: 'ext-01', texto: 'Caixas de roda' },
+    { id: 'ext-02', texto: 'Latarias' },
+    { id: 'ext-03', texto: 'Vidros' },
   ]},
-  { id: 'int', titulo: 'Limpeza interna', tipo: 'nota', itens: [
-    { id: 'int-01', texto: 'Vidros internos e para-brisa por dentro' },
-    { id: 'int-02', texto: 'Painel, volante e alavancas de seta e farol' },
-    { id: 'int-03', texto: 'Manoplas do câmbio e do freio de mão' },
-    { id: 'int-04', texto: 'Bancos dianteiros, cintos e encaixes' },
-    { id: 'int-05', texto: 'Forros e cantos das portas, comandos de vidro e espelho' },
-    { id: 'int-06', texto: 'Pedais e tapetes dianteiros' },
-    { id: 'int-07', texto: 'Porta-luvas' },
-    { id: 'int-08', texto: 'Banco traseiro (lados e centro), cintos e encaixes' },
-    { id: 'int-09', texto: 'Tapetes traseiros, molduras das portas traseiras e teto interno' },
-    { id: 'int-10', texto: 'Porta-malas: bagagito, tampão, área do estepe, estepe, moldura e cantos' },
+  { id: 'int', titulo: 'Qualidade da higienização interna', tipo: 'nota', itens: [
+    { id: 'int-01', texto: 'Banco' },
+    { id: 'int-02', texto: 'Assoalho' },
+    { id: 'int-03', texto: 'Painel' },
   ]},
-  { id: 'aju', titulo: 'Ajustes de padrão', tipo: 'fezNao', itens: [
-    { id: 'aju-01', texto: 'Bancos dianteiros alinhados (todo para trás, encosto a 90º)' },
-    { id: 'aju-02', texto: 'Encostos de cabeça dianteiros e traseiros abaixados' },
-    { id: 'aju-03', texto: 'Cintos traseiros afivelados' },
-    { id: 'aju-04', texto: 'Ar-condicionado desligado' },
-    { id: 'aju-05', texto: 'Rádio desligado' },
-    { id: 'aju-06', texto: 'Reservatório do esguicho completo' },
-    { id: 'aju-07', texto: 'Pneus calibrados' },
-    { id: 'aju-08', texto: 'Chave e CRLV do ano de exercício dentro do porta-luvas' },
+  { id: 'lib', titulo: 'Qualidade da liberação', tipo: 'fezNao', itens: [
+    { id: 'lib-01', texto: 'Verificação das condições dos pneus' },
+    { id: 'lib-02', texto: 'Verificação do reservatório de água do esguicho' },
+    { id: 'lib-03', texto: 'Verificação da qualidade das palhetas do para-brisa' },
+    { id: 'lib-04', texto: 'Verificação dos faróis' },
+    { id: 'lib-05', texto: 'Verificação do painel' },
   ]},
-  { id: 'fec', titulo: 'Itens e fechamento', tipo: 'fezNao', itens: [
-    { id: 'fec-01', texto: 'Itens do porta-malas: bagagito, estepe, macaco, chave de roda, triângulo e gancho (se houver)' },
-    { id: 'fec-02', texto: 'Luzes de advertência apagadas no painel (se alguma estiver acesa, o carro foi encaminhado)' },
-    { id: 'fec-03', texto: 'SL encerrada no app antes de ir para a vaga' },
-    { id: 'fec-04', texto: 'Luzes desligadas e carro trancado' },
+  { id: 'aju', titulo: 'Ajustes no padrão', tipo: 'fezNao', itens: [
+    { id: 'aju-01', texto: 'Bancos alinhados' },
+    { id: 'aju-02', texto: 'Encostos abaixados' },
+    { id: 'aju-03', texto: 'Rádio no padrão' },
+    { id: 'aju-04', texto: 'Chave e chaveiro no padrão' },
+    { id: 'aju-05', texto: 'Documento presente e atualizado' },
+    { id: 'aju-06', texto: 'Tapetes presentes e em boas condições' },
+    { id: 'aju-07', texto: 'Tag ativa e em boas condições' },
   ]},
 ];
 const ITENS = GRUPOS.flatMap(g => g.itens.map(i => ({ ...i, tipo: i.tipo || g.tipo, grupo: g.id })));
