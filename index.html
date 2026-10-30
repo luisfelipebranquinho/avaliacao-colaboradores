@@ -41,6 +41,28 @@
   .seg{display:flex;gap:6px}
   .seg button{flex:1;min-height:44px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;font:inherit;font-weight:600}
   .seg.n10{display:grid;grid-template-columns:repeat(6,1fr)}
+  .av-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+  .av-head h2{margin:0;font-size:18px;color:var(--brand-2)}
+  .placa{text-transform:uppercase;letter-spacing:.12em;font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .meta{margin:10px 0 0;font-size:13px}
+  .sticky-prog{position:sticky;top:calc(64px + env(safe-area-inset-top));z-index:4;padding:12px 16px}
+  details.grupo{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+  details.grupo > summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px;cursor:pointer;font-weight:650;font-size:16px;-webkit-user-select:none;user-select:none}
+  details.grupo > summary::-webkit-details-marker{display:none}
+  details.grupo > summary .seta{transition:transform .2s;color:var(--muted)}
+  details.grupo[open] > summary .seta{transform:rotate(90deg)}
+  details.grupo[open] > summary{border-bottom:1px solid var(--line)}
+  .cont{font-size:13px;font-weight:700;padding:4px 10px;border-radius:99px;background:var(--bg);color:var(--muted);border:1px solid var(--line);white-space:nowrap}
+  .cont.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+  .grupo-body{padding:4px 16px 8px}
+  .item{padding:14px 0;border-top:1px solid var(--line)}
+  .item:first-child{border-top:0}
+  .item h3{font-size:15px;margin:0 0 10px;font-weight:600;line-height:1.35}
+  .item h3 .id{display:inline-block;font-size:11px;color:var(--muted);font-weight:600;margin-right:6px;font-family:ui-monospace,Menlo,monospace}
+  .seg button{min-height:48px;font-size:16px}
+  .seg button.on{background:var(--ok);border-color:var(--ok);color:#fff}
+  .seg button.on.nao{background:var(--bad);border-color:var(--bad);color:#fff}
+  .det-grupo{margin:14px 0 4px;font-size:13px;font-weight:700;color:var(--brand-2);text-transform:uppercase;letter-spacing:.04em}
   .seg button.on.sim{background:var(--ok);border-color:var(--ok);color:#fff}
   .seg button.on.nao{background:var(--bad);border-color:var(--bad);color:#fff}
   .seg button.on.num{background:var(--brand);border-color:var(--brand);color:#fff}
@@ -187,12 +209,26 @@
   <!-- AVALIAR -->
   <section id="scrAvaliar" class="hidden">
     <div class="card">
-      <label for="selAvaliado">Quem você está avaliando?</label>
+      <div class="av-head">
+        <h2>Liberação – Lavação</h2>
+        <span class="tag">1 avaliação = 1 carro</span>
+      </div>
+      <label for="selAvaliado">Colaborador avaliado</label>
       <select id="selAvaliado"></select>
+      <label for="matAvaliado" class="mt">ou digite a matrícula</label>
+      <input id="matAvaliado" inputmode="numeric" autocomplete="off" placeholder="Matrícula do colaborador">
+      <label for="placa" class="mt">Placa do carro liberado</label>
+      <input id="placa" class="placa" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC1D23">
+      <p class="muted meta" id="metaAval"></p>
+    </div>
+
+    <div class="card sticky-prog">
       <div class="progress"><div id="prog"></div></div>
       <div class="muted" id="progTxt" style="margin-top:6px"></div>
     </div>
-    <div class="card" id="listaProc"></div>
+
+    <div id="grupos"></div>
+
     <div class="card">
       <label for="obs">Observações (opcional)</label>
       <textarea id="obs" placeholder="Pontos de melhoria, elogios..."></textarea>
@@ -252,7 +288,58 @@ const SUPABASE_URL = 'https://btaqzpouabedjkkxuunf.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_jCd0bQLvUb4UStdZsRR7WA_OMxAVvG8';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let usuario = null, token = null, editando = null, procedimentos = [], colaboradores = [], respostas = {}, avaliacoes = [];
+let usuario = null, token = null, editando = null, colaboradores = [], respostas = {}, avaliacoes = [];
+
+/* =========================================================
+   LIBERAÇÃO – LAVAÇÃO
+   Para trocar ou acrescentar um item, edite esta lista.
+   ATENÇÃO: não mude o "id" de um item que já tem respostas
+   salvas; é por ele que comparamos a evolução ao longo do tempo.
+   tipo "nota" = botões de 0 a 5 · tipo "fezNao" = Fez / Não fez
+   ========================================================= */
+const GRUPOS = [
+  { id: 'ext', titulo: 'Limpeza externa', tipo: 'nota', itens: [
+    { id: 'ext-01', texto: 'Para-lamas e caixas de roda dianteiras' },
+    { id: 'ext-02', texto: 'Laterais e caixas de roda traseiras' },
+    { id: 'ext-03', texto: 'Portas do lado esquerdo (lataria e vidros)' },
+    { id: 'ext-04', texto: 'Portas do lado direito (lataria e vidros)' },
+    { id: 'ext-05', texto: 'Caixa de ar / longarina dos dois lados' },
+    { id: 'ext-06', texto: 'Teto' },
+    { id: 'ext-07', texto: 'Traseira: tampa, vidro, lanternas, placa, para-choque e borracha do limpador' },
+    { id: 'ext-08', texto: 'Frente: para-brisa, capô, faróis e para-choque' },
+  ]},
+  { id: 'int', titulo: 'Limpeza interna', tipo: 'nota', itens: [
+    { id: 'int-01', texto: 'Vidros internos e para-brisa por dentro' },
+    { id: 'int-02', texto: 'Painel, volante e alavancas de seta e farol' },
+    { id: 'int-03', texto: 'Manoplas do câmbio e do freio de mão' },
+    { id: 'int-04', texto: 'Bancos dianteiros, cintos e encaixes' },
+    { id: 'int-05', texto: 'Forros e cantos das portas, comandos de vidro e espelho' },
+    { id: 'int-06', texto: 'Pedais e tapetes dianteiros' },
+    { id: 'int-07', texto: 'Porta-luvas' },
+    { id: 'int-08', texto: 'Banco traseiro (lados e centro), cintos e encaixes' },
+    { id: 'int-09', texto: 'Tapetes traseiros, molduras das portas traseiras e teto interno' },
+    { id: 'int-10', texto: 'Porta-malas: bagagito, tampão, área do estepe, estepe, moldura e cantos' },
+  ]},
+  { id: 'aju', titulo: 'Ajustes de padrão', tipo: 'fezNao', itens: [
+    { id: 'aju-01', texto: 'Bancos dianteiros alinhados (todo para trás, encosto a 90º)' },
+    { id: 'aju-02', texto: 'Encostos de cabeça dianteiros e traseiros abaixados' },
+    { id: 'aju-03', texto: 'Cintos traseiros afivelados' },
+    { id: 'aju-04', texto: 'Ar-condicionado desligado' },
+    { id: 'aju-05', texto: 'Rádio desligado' },
+    { id: 'aju-06', texto: 'Reservatório do esguicho completo' },
+    { id: 'aju-07', texto: 'Pneus calibrados' },
+    { id: 'aju-08', texto: 'Chave e CRLV do ano de exercício dentro do porta-luvas' },
+  ]},
+  { id: 'fec', titulo: 'Itens e fechamento', tipo: 'fezNao', itens: [
+    { id: 'fec-01', texto: 'Itens do porta-malas: bagagito, estepe, macaco, chave de roda, triângulo e gancho (se houver)' },
+    { id: 'fec-02', texto: 'Luzes de advertência apagadas no painel (se alguma estiver acesa, o carro foi encaminhado)' },
+    { id: 'fec-03', texto: 'SL encerrada no app antes de ir para a vaga' },
+    { id: 'fec-04', texto: 'Luzes desligadas e carro trancado' },
+  ]},
+];
+const ITENS = GRUPOS.flatMap(g => g.itens.map(i => ({ ...i, tipo: i.tipo || g.tipo, grupo: g.id })));
+const ITEM_POR_ID = Object.fromEntries(ITENS.map(i => [i.id, i]));
+const PLACA_OK = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/;
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const gestor = () => usuario && ['squad','lider'].includes(usuario.papel);
@@ -367,54 +454,109 @@ function sair(){
 }
 
 async function carregarBase(){
-  [procedimentos, colaboradores] = await Promise.all([
-    rpc('listar_procedimentos'), rpc('listar_colaboradores', { p_token: token })
-  ]);
-  const opts = colaboradores.filter(c => c.ativo && c.papel === 'colaborador' && c.matricula !== usuario.matricula)
-    .map(c => `<option value="${esc(c.matricula)}">${esc(c.nome)} (${esc(c.matricula)})</option>`).join('');
+  colaboradores = await rpc('listar_colaboradores', { p_token: token });
+  const opts = colaboradores.filter(c => c.ativo && !c.aguardando && c.papel === 'colaborador' && c.matricula !== usuario.matricula)
+    .map(c => `<option value="${esc(c.matricula)}">${esc(c.nome)}${c.matricula.startsWith('PEND-') ? '' : ' (' + esc(c.matricula) + ')'}</option>`).join('');
   $('selAvaliado').innerHTML = `<option value="">Selecione...</option>` + opts;
   novaAvaliacao();
 }
 
+function botoesItem(it){
+  return it.tipo === 'fezNao'
+    ? `<button type="button" data-v="1">Fez</button><button type="button" class="nao" data-v="0">Não fez</button>`
+    : [0,1,2,3,4,5].map(n => `<button type="button" data-v="${n}">${n}</button>`).join('');
+}
+
 function novaAvaliacao(){
-  respostas = {}; $('obs').value = ''; $('selAvaliado').value = '';
-  $('listaProc').innerHTML = procedimentos.map((p,i) => {
-    const botoes = p.tipo === 'sim_nao'
-      ? `<button class="sim" data-v="1">Fez</button><button class="nao" data-v="0">Não fez</button>`
-      : (p.tipo === 'nota10' ? [0,1,2,3,4,5,6,7,8,9,10] : [0,1,2,3,4,5]).map(n=>`<button class="num" data-v="${n}">${n}</button>`).join('');
-    return `<div class="proc">
-      <h3>${i+1}. ${esc(p.titulo)}<span class="tag">${({sim_nao:'Fez / Não fez',escala:'0 a 5',nota10:'0 a 10'})[p.tipo]}</span></h3>
-      ${p.descricao?`<p>${esc(p.descricao)}</p>`:'<p></p>'}
-      <div class="seg${p.tipo==='nota10'?' n10':''}" data-pid="${p.id}">${botoes}</div></div>`;
-  }).join('');
-  $('listaProc').querySelectorAll('.seg').forEach(seg => {
-    seg.addEventListener('click', ev => {
-      const b = ev.target.closest('button'); if (!b) return;
-      seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
-      b.classList.add('on'); respostas[seg.dataset.pid] = +b.dataset.v; atualizarProgresso();
-    });
-  });
+  respostas = {}; $('obs').value = ''; $('selAvaliado').value = ''; $('matAvaliado').value = ''; $('placa').value = '';
+  $('grupos').innerHTML = GRUPOS.map((g, gi) => `
+    <details class="grupo" data-g="${g.id}"${gi === 0 ? ' open' : ''}>
+      <summary><span><span class="seta">▸</span> ${gi + 1}. ${esc(g.titulo)}</span><span class="cont" id="cont-${g.id}">0/${g.itens.length}</span></summary>
+      <div class="grupo-body">
+        ${g.itens.map(i => {
+          const it = ITEM_POR_ID[i.id];
+          return `<div class="item"><h3><span class="id">${it.id}</span>${esc(it.texto)}</h3>
+            <div class="seg" data-item="${it.id}">${botoesItem(it)}</div></div>`;
+        }).join('')}
+      </div>
+    </details>`).join('');
+
+  // só uma aba aberta por vez
+  const abas = [...$('grupos').querySelectorAll('details.grupo')];
+  abas.forEach(d => d.addEventListener('toggle', () => { if (d.open) abas.forEach(o => { if (o !== d) o.open = false; }); }));
+
+  $('grupos').querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', ev => {
+    const b = ev.target.closest('button'); if (!b) return;
+    seg.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    const itemId = seg.dataset.item, eraNovo = !(itemId in respostas);
+    respostas[itemId] = +b.dataset.v;
+    atualizarProgresso();
+    if (eraNovo) avancarSeCompleto(ITEM_POR_ID[itemId].grupo);
+  }));
+  atualizarMeta();
   atualizarProgresso();
 }
 
-function atualizarProgresso(){
-  const n = Object.keys(respostas).length, t = procedimentos.length;
-  $('prog').style.width = (t ? n/t*100 : 0) + '%';
-  $('progTxt').textContent = `${n} de ${t} procedimentos respondidos`;
+function respondidos(gid){ return GRUPOS.find(g => g.id === gid).itens.filter(i => i.id in respostas).length; }
+
+function avancarSeCompleto(gid){
+  const gi = GRUPOS.findIndex(g => g.id === gid);
+  if (respondidos(gid) < GRUPOS[gi].itens.length) return;
+  const abas = [...$('grupos').querySelectorAll('details.grupo')];
+  // próximo grupo ainda incompleto
+  const prox = GRUPOS.findIndex((g, i) => i > gi && respondidos(g.id) < g.itens.length);
+  setTimeout(() => {
+    abas[gi].open = false;
+    if (prox >= 0) {
+      abas[prox].open = true;
+      setTimeout(() => abas[prox].scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    } else {
+      setTimeout(() => $('obs').scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
+    }
+  }, 250);
 }
+
+function atualizarProgresso(){
+  const n = Object.keys(respostas).length, t = ITENS.length;
+  $('prog').style.width = (t ? n / t * 100 : 0) + '%';
+  $('progTxt').textContent = `${n} de ${t} itens respondidos`;
+  GRUPOS.forEach(g => {
+    const r = respondidos(g.id), el = $('cont-' + g.id);
+    if (!el) return;
+    el.textContent = `${r}/${g.itens.length}`;
+    el.classList.toggle('ok', r === g.itens.length);
+  });
+}
+
+function atualizarMeta(){
+  const agora = new Date().toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  $('metaAval').textContent = usuario ? `Avaliador: ${usuario.nome} · ${agora}` : '';
+}
+
+function normalizarPlaca(v){ return String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
 
 async function salvar(){
   const avaliado = $('selAvaliado').value;
-  if (!avaliado) return flash('Selecione quem está sendo avaliado.');
-  if (Object.keys(respostas).length < procedimentos.length) return flash('Responda todos os procedimentos.');
+  const placa = normalizarPlaca($('placa').value);
+  if (!avaliado) return flash('Selecione ou digite a matrícula do colaborador avaliado.');
+  if (!PLACA_OK.test(placa)) return flash('Placa inválida. Use o formato ABC1234 ou ABC1D23.');
+  const faltam = ITENS.length - Object.keys(respostas).length;
+  if (faltam > 0) {
+    flash(`Faltam ${faltam} ${faltam === 1 ? 'item' : 'itens'} para responder.`);
+    const g = GRUPOS.findIndex(g => respondidos(g.id) < g.itens.length);
+    const abas = [...$('grupos').querySelectorAll('details.grupo')];
+    if (g >= 0) { abas[g].open = true; setTimeout(() => abas[g].scrollIntoView({ behavior: 'smooth', block: 'start' }), 300); }
+    return;
+  }
   $('btnSalvar').disabled = true;
   try{
-    await rpc('salvar_avaliacao', {
-      p_token: token, p_avaliado: avaliado,
-      p_respostas: Object.entries(respostas).map(([k,v]) => ({ procedimento_id:+k, valor:v })),
+    await rpc('salvar_liberacao', {
+      p_token: token, p_avaliado: avaliado, p_placa: placa,
+      p_itens: ITENS.map(i => ({ id: i.id, tipo: i.tipo, valor: respostas[i.id] })),
       p_observacao: $('obs').value
     });
-    flash('Avaliação salva!', 'ok'); novaAvaliacao();
+    flash(`Liberação da placa ${placa} salva!`, 'ok'); novaAvaliacao();
   }catch(e){ flash('Não foi possível salvar: ' + e.message); }
   finally{ $('btnSalvar').disabled = false; }
 }
@@ -429,11 +571,11 @@ async function carregarResultados(){
   avaliacoes.forEach(a => { (por[a.avaliado] ??= { nome:a.avaliado_nome, soma:0, n:0 }); por[a.avaliado].soma += +a.pontuacao; por[a.avaliado].n++; });
   const lista = Object.values(por).sort((a,b)=>b.soma/b.n - a.soma/a.n);
   $('resumo').innerHTML = `<h3 style="margin-top:0">${gestor()?'Desempenho da equipe':'Quem você avaliou'}</h3>` +
-    (lista.length ? lista.map(c => { const m = c.soma/c.n; return `<div class="row"><div><div class="t">${esc(c.nome)}</div><div class="s">${c.n} avaliação(ões) · média</div></div><div class="score ${cls(m)}">${m.toFixed(0)}%</div></div>`; }).join('')
+    (lista.length ? lista.map(c => { const m = c.soma/c.n; return `<div class="row"><div><div class="t">${esc(c.nome)}</div><div class="s">${c.n} liberação(ões) · média</div></div><div class="score ${cls(m)}">${m.toFixed(0)}%</div></div>`; }).join('')
                   : '<p class="muted">Nenhuma avaliação ainda.</p>');
   $('listaAval').innerHTML = `<h3 style="margin-top:0">Histórico</h3>` +
     (avaliacoes.length ? avaliacoes.map(a => `<div class="row" onclick="verDetalhe(${a.id})" style="cursor:pointer">
-      <div><div class="t">${esc(a.avaliado_nome)}</div><div class="s">${dt(a.criado_em)}${gestor()?' · por '+esc(a.avaliador_nome):''}</div></div>
+      <div><div class="t">${esc(a.avaliado_nome)}</div><div class="s">${a.placa ? '<b>' + esc(a.placa) + '</b> · ' : ''}${dt(a.criado_em)}${gestor()?' · por '+esc(a.avaliador_nome):''}</div></div>
       <div class="score ${cls(+a.pontuacao)}">${(+a.pontuacao).toFixed(0)}%</div></div>`).join('')
       : '<p class="muted">Nada por aqui.</p>');
 }
@@ -442,13 +584,23 @@ async function verDetalhe(id){
   const a = avaliacoes.find(x => x.id === id);
   try{
     const itens = await rpc('detalhe_avaliacao', { p_token: token, p_id: id });
+    const val = Object.fromEntries(itens.map(i => [i.item_id, i]));
+    const linha = (iid, texto) => {
+      const r = val[iid]; if (!r) return '';
+      const v = r.tipo === 'fezNao' ? (r.valor ? '✅ Fez' : '❌ Não fez') : `${r.valor} / 5`;
+      return `<div class="row"><div class="t" style="font-weight:500">${esc(texto)}</div><div style="white-space:nowrap;font-weight:600">${v}</div></div>`;
+    };
+    const conhecidos = new Set(ITENS.map(i => i.id));
+    const extras = itens.filter(i => !conhecidos.has(i.item_id));
     $('detalhe').innerHTML = `<h3 style="margin-top:0">${esc(a.avaliado_nome)}</h3>
-      <p class="muted">${dt(a.criado_em)} · avaliado por ${esc(a.avaliador_nome)}</p>
+      <p class="muted">${a.placa ? '<b>Placa ' + esc(a.placa) + '</b> · ' : ''}${dt(a.criado_em)} · avaliado por ${esc(a.avaliador_nome)}</p>
       <div class="score ${cls(+a.pontuacao)}" style="display:inline-block;margin-bottom:8px">${(+a.pontuacao).toFixed(0)}%</div>` +
-      itens.map(i => {
-        const v = i.tipo==='sim_nao' ? (i.valor ? '✅ Fez' : '❌ Não fez') : `${i.valor} / ${i.tipo==='nota10'?10:5}`;
-        return `<div class="row"><div class="t" style="font-weight:500">${esc(i.titulo)}</div><div style="white-space:nowrap;font-weight:600">${v}</div></div>`;
-      }).join('') + (a.observacao ? `<div class="row"><div><div class="s">Observações</div>${esc(a.observacao)}</div></div>` : '');
+      GRUPOS.map(g => {
+        const linhas = g.itens.map(i => linha(i.id, i.texto)).join('');
+        return linhas ? `<div class="det-grupo">${esc(g.titulo)}</div>` + linhas : '';
+      }).join('') +
+      (extras.length ? `<div class="det-grupo">Itens antigos</div>` + extras.map(i => linha(i.item_id, i.item_id)).join('') : '') +
+      (a.observacao ? `<div class="row"><div><div class="s">Observações</div>${esc(a.observacao)}</div></div>` : '');
     mostrar('Detalhe');
   }catch(e){ flash(e.message); }
 }
@@ -496,6 +648,20 @@ function ir(t){
 function toggleEqSenha(){ $('boxEqSenha').classList.remove('hidden'); $('eqSenhaLbl').textContent = $('eqPapel').value==='colaborador' ? 'Senha (opcional, o colaborador pode criar no primeiro acesso)' : 'Senha (obrigatória para Squad/Líder)'; }
 $('eqPapel').addEventListener('change', toggleEqSenha);
 toggleEqSenha();
+$('matAvaliado').addEventListener('input', () => {
+  const m = $('matAvaliado').value.trim();
+  const ok = [...$('selAvaliado').options].some(o => o.value === m);
+  if (ok) $('selAvaliado').value = m;
+  else if (m) $('selAvaliado').value = '';
+});
+$('matAvaliado').addEventListener('change', () => {
+  const m = $('matAvaliado').value.trim();
+  if (m && $('selAvaliado').value !== m) flash('Matrícula não encontrada entre os colaboradores. Selecione na lista.');
+});
+$('selAvaliado').addEventListener('change', () => {
+  const v = $('selAvaliado').value; $('matAvaliado').value = v.startsWith('PEND-') ? '' : v;
+});
+$('placa').addEventListener('input', () => { const el = $('placa'); el.value = normalizarPlaca(el.value).slice(0, 7); });
 try{ const s = JSON.parse(ler('sessao') || 'null'); if (s && s.token) { token = s.token; usuario = s.usuario; abrirApp(); } }catch(e){}
 </script>
 </body>
