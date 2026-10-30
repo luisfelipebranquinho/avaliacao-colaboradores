@@ -460,7 +460,7 @@ function botoesItem(it){
 function novaAvaliacao(){
   respostas = {}; $('obs').value = ''; $('selAvaliado').value = ''; $('matAvaliado').value = ''; $('placa').value = '';
   $('grupos').innerHTML = GRUPOS.map((g, gi) => `
-    <details class="grupo" data-g="${g.id}"${gi === 0 ? ' open' : ''}>
+    <details class="grupo" data-g="${g.id}">
       <summary><span><span class="seta">▸</span> ${gi + 1}. ${esc(g.titulo)}</span><span class="cont" id="cont-${g.id}">0/${g.itens.length}</span></summary>
       <div class="grupo-body">
         ${g.itens.map(i => {
