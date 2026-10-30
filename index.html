@@ -62,6 +62,7 @@
   .seg button{min-height:48px;font-size:16px}
   .seg button.on{background:var(--ok);border-color:var(--ok);color:#fff}
   .seg button.on.nao{background:var(--bad);border-color:var(--bad);color:#fff}
+  .falta{margin:8px 0 0;text-align:center;font-size:13px}
   .det-grupo{margin:14px 0 4px;font-size:13px;font-weight:700;color:var(--brand-2);text-transform:uppercase;letter-spacing:.04em}
   .seg button.on.sim{background:var(--ok);border-color:var(--ok);color:#fff}
   .seg button.on.nao{background:var(--bad);border-color:var(--bad);color:#fff}
@@ -232,7 +233,8 @@
     <div class="card">
       <label for="obs">Observações (opcional)</label>
       <textarea id="obs" placeholder="Pontos de melhoria, elogios..."></textarea>
-      <button class="btn" id="btnSalvar" onclick="salvar()">Salvar avaliação</button>
+      <button class="btn" id="btnSalvar" onclick="salvar()" disabled>Salvar avaliação</button>
+      <p class="muted falta" id="faltaTxt"></p>
     </div>
   </section>
 
@@ -509,6 +511,7 @@ function atualizarProgresso(){
   const n = Object.keys(respostas).length, t = ITENS.length;
   $('prog').style.width = (t ? n / t * 100 : 0) + '%';
   $('progTxt').textContent = `${n} de ${t} itens respondidos`;
+  atualizarBotao();
   GRUPOS.forEach(g => {
     const r = respondidos(g.id), el = $('cont-' + g.id);
     if (!el) return;
@@ -522,11 +525,26 @@ function atualizarMeta(){
   $('metaAval').textContent = usuario ? `Avaliador: ${usuario.nome} · ${agora}` : '';
 }
 
+function pendencias(){
+  const f = [];
+  if (!$('selAvaliado').value) f.push('colaborador avaliado');
+  if (!PLACA_OK.test(normalizarPlaca($('placa').value))) f.push('placa válida');
+  const faltam = ITENS.length - Object.keys(respostas).length;
+  if (faltam > 0) f.push(`${faltam} ${faltam === 1 ? 'item' : 'itens'} da avaliação`);
+  return f;
+}
+function atualizarBotao(){
+  const f = pendencias(), b = $('btnSalvar');
+  if (!b) return;
+  b.disabled = f.length > 0;
+  $('faltaTxt').textContent = f.length ? 'Para salvar, falta: ' + f.join(', ') + '.' : 'Tudo preenchido. Pode salvar.';
+}
 function normalizarPlaca(v){ return String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
 
 async function salvar(){
   const avaliado = $('selAvaliado').value;
   const placa = normalizarPlaca($('placa').value);
+  if (pendencias().length) { atualizarBotao(); return flash('Para salvar, falta: ' + pendencias().join(', ') + '.'); }
   if (!avaliado) return flash('Selecione ou digite a matrícula do colaborador avaliado.');
   if (!PLACA_OK.test(placa)) return flash('Placa inválida. Use o formato ABC1234 ou ABC1D23.');
   const faltam = ITENS.length - Object.keys(respostas).length;
@@ -546,7 +564,7 @@ async function salvar(){
     });
     flash(`Liberação da placa ${placa} salva!`, 'ok'); novaAvaliacao();
   }catch(e){ flash('Não foi possível salvar: ' + e.message); }
-  finally{ $('btnSalvar').disabled = false; }
+  finally{ atualizarBotao(); }
 }
 
 async function carregarResultados(){
@@ -641,6 +659,7 @@ $('matAvaliado').addEventListener('input', () => {
   const ok = [...$('selAvaliado').options].some(o => o.value === m);
   if (ok) $('selAvaliado').value = m;
   else if (m) $('selAvaliado').value = '';
+  atualizarBotao();
 });
 $('matAvaliado').addEventListener('change', () => {
   const m = $('matAvaliado').value.trim();
@@ -648,8 +667,9 @@ $('matAvaliado').addEventListener('change', () => {
 });
 $('selAvaliado').addEventListener('change', () => {
   const v = $('selAvaliado').value; $('matAvaliado').value = v.startsWith('PEND-') ? '' : v;
+  atualizarBotao();
 });
-$('placa').addEventListener('input', () => { const el = $('placa'); el.value = normalizarPlaca(el.value).slice(0, 7); });
+$('placa').addEventListener('input', () => { const el = $('placa'); el.value = normalizarPlaca(el.value).slice(0, 7); atualizarBotao(); });
 try{ const s = JSON.parse(ler('sessao') || 'null'); if (s && s.token) { token = s.token; usuario = s.usuario; abrirApp(); } }catch(e){}
 </script>
 </body>
