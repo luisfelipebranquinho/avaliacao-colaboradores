@@ -465,7 +465,7 @@ function novaAvaliacao(){
       <div class="grupo-body">
         ${g.itens.map(i => {
           const it = ITEM_POR_ID[i.id];
-          return `<div class="item"><h3><span class="id">${it.id}</span>${esc(it.texto)}</h3>
+          return `<div class="item"><h3>${esc(it.texto)}</h3>
             <div class="seg" data-item="${it.id}">${botoesItem(it)}</div></div>`;
         }).join('')}
       </div>
