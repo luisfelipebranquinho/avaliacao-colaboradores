@@ -413,6 +413,7 @@ const GRUPOS = [
     { id: 'aju-05', texto: 'Documento presente e atualizado' },
     { id: 'aju-06', texto: 'Tapetes presentes e em boas condições' },
     { id: 'aju-07', texto: 'Tag ativa e em boas condições' },
+    { id: 'aju-08', texto: 'Alinhamento dos direcionadores do ar' },
   ]},
 ];
 const ITENS = GRUPOS.flatMap(g => g.itens.map(i => ({ ...i, tipo: i.tipo || g.tipo, grupo: g.id })));
