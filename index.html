@@ -319,6 +319,8 @@
       <div class="card hidden" id="pedidosTop"></div>
       <div class="card">
         <h3 style="margin-top:0" id="eqTitulo">Cadastrar colaborador</h3>
+        <label for="eqSel">Colaborador</label>
+        <select id="eqSel" style="margin-bottom:10px"></select>
         <label for="eqMat">Matrícula</label>
         <input id="eqMat" inputmode="numeric" style="margin-bottom:10px">
         <label for="eqNome">Nome</label>
@@ -791,17 +793,21 @@ async function carregarEquipe(){
       <div class="acts"><button class="mini" onclick="aprovar('${esc(c.matricula)}',true)">Aprovar</button><button class="mini no" onclick="aprovar('${esc(c.matricula)}',false)">Recusar</button></div></div>`).join('') +
     resets.map(c => `<div class="req"><div><div class="t">${esc(c.nome)}</div><div class="s">Esqueceu a senha · ${esc(c.matricula)}</div></div>
       <div class="acts"><button class="mini" onclick="liberar('${esc(c.matricula)}')">Liberar</button></div></div>`).join('');
+  const selAtual = editando || '';
+  $('eqSel').innerHTML = '<option value="">+ Novo colaborador</option>' +
+    colaboradores.map(c => `<option value="${esc(c.matricula)}">${esc(c.nome)} · ${nomePapel(c.papel)}${c.ativo ? '' : ' (inativo)'}</option>`).join('');
+  $('eqSel').value = colaboradores.some(c => c.matricula === selAtual) ? selAtual : '';
   $('listaEquipe').innerHTML = `<h3 style="margin-top:0">Equipe (${colaboradores.length})</h3>` + colaboradores.map(c =>
     `<div class="row" style="cursor:pointer" onclick="editarColab('${esc(c.matricula)}')"><div><div class="t">${esc(c.nome)}</div>
     <div class="s">${esc(c.matricula)} · ${nomePapel(c.papel)}${c.ativo?'':' · inativo'}${c.matricula.startsWith('PEND-')?' · <b style="color:var(--warn)">matrícula pendente</b>':''}${c.aguardando?' · <b style="color:var(--warn)">aguardando aprovação</b>':(!c.tem_senha && !c.matricula.startsWith('PEND-')?' · sem senha ainda':'')}</div></div><span class="muted">Editar</span></div>`).join('');
 }
 async function aprovar(m, ok){ try{ await rpc('aprovar_cadastro', { p_token: token, p_matricula: m, p_aprovar: ok }); flash(ok?'Cadastro aprovado.':'Cadastro recusado.','ok'); await carregarEquipe(); await carregarBase(); }catch(e){ flash(msgErro(e)); } }
 async function liberar(m){ try{ await rpc('liberar_redefinicao', { p_token: token, p_matricula: m }); flash('Redefinição liberada. A pessoa deve entrar por "Primeiro acesso".','ok'); await carregarEquipe(); }catch(e){ flash(msgErro(e)); } }
-function limparEq(){ ['eqMat','eqNome','eqSenha'].forEach(i=>$(i).value=''); $('eqPapel').value='colaborador'; $('eqAtivo').value='true'; editando=null; $('eqTitulo').textContent='Cadastrar colaborador'; toggleEqSenha(); }
+function limparEq(){ $('eqSel').value=''; ['eqMat','eqNome','eqSenha'].forEach(i=>$(i).value=''); $('eqPapel').value='colaborador'; $('eqAtivo').value='true'; editando=null; $('eqTitulo').textContent='Cadastrar colaborador'; toggleEqSenha(); }
 function editarColab(m){
   const c = colaboradores.find(x=>x.matricula===m); if(!c) return;
   editando=c.matricula; $('eqMat').value=c.matricula; $('eqNome').value=c.nome; $('eqPapel').value=c.papel; $('eqAtivo').value=String(c.ativo); $('eqSenha').value=''; toggleEqSenha();
-  $('eqTitulo').textContent='Editando '+c.nome; window.scrollTo({top:0,behavior:'smooth'});
+  $('eqSel').value=c.matricula; $('eqTitulo').textContent='Editando '+c.nome; window.scrollTo({top:0,behavior:'smooth'});
 }
 async function salvarColab(){
   try{
@@ -822,8 +828,14 @@ function ir(t){
   if (t==='Equipe') abrirEquipe();
 }
 
-function toggleEqSenha(){ $('boxEqSenha').classList.remove('hidden'); $('eqSenhaLbl').textContent = $('eqPapel').value==='colaborador' ? 'Senha (opcional, o colaborador pode criar no primeiro acesso)' : 'Senha (obrigatória para Squad/Líder)'; }
+function toggleEqSenha(){
+  $('boxEqSenha').classList.remove('hidden');
+  const c = editando && colaboradores.find(x => x.matricula === editando);
+  $('eqSenhaLbl').textContent = (c && c.tem_senha) ? 'Nova senha (deixe em branco para manter a atual)'
+    : $('eqPapel').value === 'colaborador' ? 'Senha (opcional, o colaborador pode criar no primeiro acesso)' : 'Senha (obrigatória para Squad/Líder)';
+}
 $('eqPapel').addEventListener('change', toggleEqSenha);
+$('eqSel').addEventListener('change', () => { const v = $('eqSel').value; if (v) editarColab(v); else limparEq(); });
 $('obsColab').addEventListener('change', () => { const v = $('obsColab').value; $('obsMat').value = v.startsWith('PEND-') ? '' : v; carregarObs(); });
 $('obsMat').addEventListener('input', () => {
   const m = $('obsMat').value.trim();
