@@ -63,6 +63,26 @@
   .seg button.on{background:var(--ok);border-color:var(--ok);color:#fff}
   .seg button.on.nao{background:var(--bad);border-color:var(--bad);color:#fff}
   input.auto{background:transparent;border-style:dashed;color:var(--ink);font-weight:600}
+  .ico-grid{display:grid;grid-template-columns:1fr;gap:12px}
+  @media (min-width:520px){.ico-grid{grid-template-columns:repeat(3,1fr)}}
+  .ico-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;font:inherit;color:var(--ink);cursor:pointer}
+  .ico-card:active{transform:scale(.99)}
+  .ico-card b{font-size:16px}
+  .ico-card small{color:var(--muted);font-size:13px}
+  .ico{width:46px;height:46px;border-radius:12px;background:var(--brand);display:grid;place-items:center;margin-bottom:6px}
+  .ico svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .badge-n{position:absolute;top:12px;right:12px;background:var(--bad);color:#fff;border-radius:99px;font-size:12px;font-weight:700;padding:2px 8px}
+  .voltar{background:none;border:0;color:var(--brand-2);font:inherit;font-weight:700;padding:4px 0 12px;cursor:pointer}
+  .sub-det{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+  .sub-det summary{cursor:pointer;color:var(--brand-2);font-weight:600}
+  .lbl-rec{color:var(--ok);font-weight:600}
+  .lbl-aten{color:var(--warn);font-weight:600}
+  .obs-item{padding:12px 0;border-top:1px solid var(--line)}
+  .obs-item:first-of-type{border-top:0}
+  .obs-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;margin-bottom:6px}
+  .obs-tag.reconhecimento{background:#e3f5ea;color:#11663a}
+  .obs-tag.observacao{background:#fdf1d8;color:#8a5a00}
+  .obs-item p{margin:0;white-space:pre-wrap}
   .falta{margin:8px 0 0;text-align:center;font-size:13px}
   .det-grupo{margin:14px 0 4px;font-size:13px;font-weight:700;color:var(--brand-2);text-transform:uppercase;letter-spacing:.04em}
   .seg button.on.sim{background:var(--ok);border-color:var(--ok);color:#fff}
@@ -251,38 +271,101 @@
     <button class="btn ghost" onclick="ir('Resultados')">Voltar</button>
   </section>
 
-  <!-- EQUIPE (líder) -->
+  <!-- EQUIPE -->
   <section id="scrEquipe" class="hidden">
-    <div class="card hidden" id="pedidosTop"></div>
-    <div class="card">
-      <h3 style="margin-top:0" id="eqTitulo">Cadastrar colaborador</h3>
-      <label for="eqMat">Matrícula</label>
-      <input id="eqMat" inputmode="numeric" style="margin-bottom:10px">
-      <label for="eqNome">Nome</label>
-      <input id="eqNome" style="margin-bottom:10px">
-      <label for="eqPapel">Perfil</label>
-      <select id="eqPapel" style="margin-bottom:10px">
-        <option value="colaborador">Colaborador</option>
-        <option value="lider">Líder</option>
-        <option value="squad">Squad</option>
-      </select>
-      <label for="eqAtivo">Situação</label>
-      <select id="eqAtivo" style="margin-bottom:10px"><option value="true">Ativo</option><option value="false">Inativo</option></select>
-      <div id="boxEqSenha" class="hidden">
-        <label for="eqSenha" id="eqSenhaLbl">Senha</label>
-        <input id="eqSenha" type="password" autocomplete="new-password" placeholder="Deixe em branco para manter a atual">
-      </div>
-      <button class="btn" onclick="salvarColab()">Salvar</button>
-      <button class="btn ghost" onclick="limparEq()">Limpar / novo cadastro</button>
+
+    <!-- Menu de ícones -->
+    <div id="eqMenu" class="ico-grid">
+      <button type="button" class="ico-card" onclick="abrirEq('perfil')">
+        <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span><b>Meu perfil</b><small>Nome, e-mail, telefone e senha</small>
+      </button>
+      <button type="button" class="ico-card so-squad" onclick="abrirEq('colab')">
+        <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5 1.6 0 3 .4 4.1 1"/><path d="M14.5 20.5l1-3.5 5-5 2.5 2.5-5 5z"/></svg></span><b>Colaboradores</b><small>Editar dados e pedidos</small><span class="badge-n hidden" id="badgePedidos"></span>
+      </button>
+      <button type="button" class="ico-card so-gestor" onclick="abrirEq('obs')">
+        <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4"/><path d="M8 12h8M8 16h5"/></svg></span><b>Observações</b><small>Reconhecimento e pontos de atenção</small>
+      </button>
     </div>
-    <div class="card" id="listaEquipe"></div>
+
+    <!-- Meu perfil -->
+    <div id="eqPerfil" class="hidden">
+      <button type="button" class="voltar" onclick="abrirEq(null)">‹ Equipe</button>
+      <div class="card">
+        <h3 style="margin-top:0">Meu perfil</h3>
+        <label>Matrícula</label>
+        <input id="pfMat" readonly tabindex="-1" class="auto">
+        <label for="pfNome" class="mt">Nome</label>
+        <input id="pfNome" autocomplete="name">
+        <label for="pfEmail" class="mt">E-mail</label>
+        <input id="pfEmail" type="email" inputmode="email" autocomplete="email" placeholder="seuemail@exemplo.com">
+        <label for="pfTel" class="mt">Telefone de contato</label>
+        <input id="pfTel" type="tel" inputmode="tel" autocomplete="tel" placeholder="(48) 99999-9999">
+        <details class="sub-det">
+          <summary>Alterar minha senha</summary>
+          <label for="pfSenhaAtual" class="mt">Senha atual</label>
+          <input id="pfSenhaAtual" type="password" autocomplete="current-password">
+          <label for="pfSenhaNova" class="mt">Nova senha</label>
+          <input id="pfSenhaNova" type="password" autocomplete="new-password" placeholder="Mínimo de 6 caracteres">
+          <label for="pfSenhaNova2" class="mt">Confirme a nova senha</label>
+          <input id="pfSenhaNova2" type="password" autocomplete="new-password">
+        </details>
+        <button class="btn" id="btnPerfil" onclick="salvarPerfil()">Salvar meu perfil</button>
+      </div>
+    </div>
+
+    <!-- Colaboradores (Squad) -->
+    <div id="eqColab" class="hidden">
+      <button type="button" class="voltar" onclick="abrirEq(null)">‹ Equipe</button>
+      <div class="card hidden" id="pedidosTop"></div>
+      <div class="card">
+        <h3 style="margin-top:0" id="eqTitulo">Cadastrar colaborador</h3>
+        <label for="eqMat">Matrícula</label>
+        <input id="eqMat" inputmode="numeric" style="margin-bottom:10px">
+        <label for="eqNome">Nome</label>
+        <input id="eqNome" style="margin-bottom:10px">
+        <label for="eqPapel">Perfil</label>
+        <select id="eqPapel" style="margin-bottom:10px">
+          <option value="colaborador">Colaborador</option>
+          <option value="lider">Líder</option>
+          <option value="squad">Squad</option>
+        </select>
+        <label for="eqAtivo">Situação</label>
+        <select id="eqAtivo" style="margin-bottom:10px"><option value="true">Ativo</option><option value="false">Inativo</option></select>
+        <div id="boxEqSenha" class="hidden">
+          <label for="eqSenha" id="eqSenhaLbl">Senha</label>
+          <input id="eqSenha" type="password" autocomplete="new-password" placeholder="Deixe em branco para manter a atual">
+        </div>
+        <button class="btn" onclick="salvarColab()">Salvar</button>
+        <button class="btn ghost" onclick="limparEq()">Limpar / novo cadastro</button>
+      </div>
+      <div class="card" id="listaEquipe"></div>
+    </div>
+
+    <!-- Observações -->
+    <div id="eqObs" class="hidden">
+      <button type="button" class="voltar" onclick="abrirEq(null)">‹ Equipe</button>
+      <div class="card">
+        <h3 style="margin-top:0">Observações de comportamento</h3>
+        <label for="obsColab">Colaborador</label>
+        <select id="obsColab"></select>
+        <label for="obsMat" class="mt">ou digite a matrícula</label>
+        <input id="obsMat" inputmode="numeric" autocomplete="off" placeholder="Matrícula do colaborador">
+        <label for="obsRec" class="mt lbl-rec">Comportamento digno de reconhecimento</label>
+        <textarea id="obsRec" placeholder="O que ele fez de positivo?"></textarea>
+        <label for="obsAten" class="mt lbl-aten">Comportamento para observação</label>
+        <textarea id="obsAten" placeholder="O que precisa de atenção ou melhorar?"></textarea>
+        <p class="muted meta">Preencha um ou os dois campos. Cada texto fica salvo no histórico do colaborador.</p>
+        <button class="btn" id="btnObs" onclick="salvarObs()">Salvar observação</button>
+      </div>
+      <div class="card" id="listaObs"><p class="muted">Selecione um colaborador para ver o histórico.</p></div>
+    </div>
   </section>
 </main>
 
 <nav id="nav" class="hidden">
   <button data-t="Avaliar" onclick="ir('Avaliar')">Avaliar</button>
   <button data-t="Resultados" onclick="ir('Resultados')">Resultados</button>
-  <button data-t="Equipe" id="navEquipe" onclick="ir('Equipe')" class="hidden">Equipe</button>
+  <button data-t="Equipe" id="navEquipe" onclick="ir('Equipe')">Equipe</button>
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -430,7 +513,6 @@ function esqueci(){ return ocupado('btnEsqueci', async () => {
 
 async function abrirApp(){
   $('userName').innerHTML = `${esc(usuario.nome)}<small>${nomePapel(usuario.papel)} · ${esc(usuario.matricula)}</small>`;
-  $('navEquipe').classList.toggle('hidden', !gestor());
   $('topbar').classList.remove('hidden'); $('nav').classList.remove('hidden'); $('scrLogin').classList.add('hidden');
   try{ await carregarBase(); ir('Avaliar'); }
   catch(e){ sair(); flash(e.message); }
@@ -612,6 +694,94 @@ async function verDetalhe(id){
   }catch(e){ flash(e.message); }
 }
 
+const ehSquad = () => usuario && usuario.papel === 'squad';
+let eqAtual = null;
+function abrirEq(qual){
+  eqAtual = qual;
+  $('eqMenu').classList.toggle('hidden', !!qual);
+  $('eqPerfil').classList.toggle('hidden', qual !== 'perfil');
+  $('eqColab').classList.toggle('hidden', qual !== 'colab');
+  $('eqObs').classList.toggle('hidden', qual !== 'obs');
+  window.scrollTo(0, 0);
+  if (qual === 'perfil') carregarPerfil();
+  if (qual === 'colab') carregarEquipe();
+  if (qual === 'obs') carregarObsTela();
+}
+async function abrirEquipe(){
+  document.querySelectorAll('.so-squad').forEach(e => e.classList.toggle('hidden', !ehSquad()));
+  document.querySelectorAll('.so-gestor').forEach(e => e.classList.toggle('hidden', !gestor()));
+  abrirEq(null);
+  if (ehSquad()) {
+    try{
+      const lista = await rpc('listar_colaboradores', { p_token: token });
+      const n = lista.filter(c => c.pediu_reset || c.aguardando).length;
+      $('badgePedidos').textContent = n; $('badgePedidos').classList.toggle('hidden', !n);
+    }catch(e){}
+  }
+}
+
+async function carregarPerfil(){
+  try{
+    const r = (await rpc('meu_perfil', { p_token: token }))[0];
+    $('pfMat').value = r.matricula; $('pfNome').value = r.nome || ''; $('pfEmail').value = r.email || ''; $('pfTel').value = r.telefone || '';
+    ['pfSenhaAtual','pfSenhaNova','pfSenhaNova2'].forEach(i => $(i).value = '');
+  }catch(e){ flash(msgErro(e)); }
+}
+async function salvarPerfil(){
+  const nova = $('pfSenhaNova').value;
+  if (nova && nova !== $('pfSenhaNova2').value) return flash('As senhas novas não conferem.');
+  $('btnPerfil').disabled = true;
+  try{
+    const r = (await rpc('atualizar_meu_perfil', { p_token: token, p_nome: $('pfNome').value, p_email: $('pfEmail').value,
+      p_telefone: $('pfTel').value, p_senha_atual: $('pfSenhaAtual').value || null, p_nova_senha: nova || null }))[0];
+    usuario.nome = r.nome; guardar('sessao', JSON.stringify({ token, usuario }));
+    $('userName').innerHTML = `${esc(usuario.nome)}<small>${nomePapel(usuario.papel)} · ${esc(usuario.matricula)}</small>`;
+    atualizarMeta();
+    flash(nova ? 'Perfil e senha atualizados!' : 'Perfil atualizado!', 'ok');
+    ['pfSenhaAtual','pfSenhaNova','pfSenhaNova2'].forEach(i => $(i).value = '');
+  }catch(e){ flash(msgErro(e)); }
+  finally{ $('btnPerfil').disabled = false; }
+}
+
+async function carregarObsTela(){
+  try{
+    const lista = await rpc('listar_colaboradores', { p_token: token });
+    const opts = lista.filter(c => c.ativo && !c.aguardando && c.papel === 'colaborador')
+      .map(c => `<option value="${esc(c.matricula)}">${esc(c.nome)}</option>`).join('');
+    const atual = $('obsColab').value;
+    $('obsColab').innerHTML = '<option value="">Selecione...</option>' + opts;
+    if (atual) $('obsColab').value = atual;
+    await carregarObs();
+  }catch(e){ flash(msgErro(e)); }
+}
+async function carregarObs(){
+  const m = $('obsColab').value;
+  if (!m) { $('listaObs').innerHTML = '<p class="muted">Selecione um colaborador para ver o histórico.</p>'; return; }
+  try{
+    const itens = await rpc('listar_observacoes', { p_token: token, p_colaborador: m });
+    const nome = $('obsColab').selectedOptions[0].textContent;
+    $('listaObs').innerHTML = `<h3 style="margin-top:0">Histórico de ${esc(nome)}</h3>` + (itens.length ? itens.map(o => `
+      <div class="obs-item"><span class="obs-tag ${o.tipo}">${o.tipo === 'reconhecimento' ? 'Reconhecimento' : 'Para observação'}</span>
+        <p>${esc(o.texto)}</p><div class="s muted" style="font-size:12px;margin-top:4px">${dt(o.criado_em)} · por ${esc(o.autor_nome)}</div></div>`).join('')
+      : '<p class="muted">Nenhum registro ainda.</p>');
+  }catch(e){ flash(msgErro(e)); }
+}
+async function salvarObs(){
+  const m = $('obsColab').value, rec = $('obsRec').value.trim(), aten = $('obsAten').value.trim();
+  if (!m) return flash('Selecione o colaborador ou digite a matrícula.');
+  if (!rec && !aten) return flash('Escreva pelo menos um dos dois comportamentos.');
+  if ((rec && rec.length < 3) || (aten && aten.length < 3)) return flash('Escreva um pouco mais no texto.');
+  $('btnObs').disabled = true;
+  try{
+    if (rec) await rpc('salvar_observacao', { p_token: token, p_colaborador: m, p_tipo: 'reconhecimento', p_texto: rec });
+    if (aten) await rpc('salvar_observacao', { p_token: token, p_colaborador: m, p_tipo: 'observacao', p_texto: aten });
+    $('obsRec').value = ''; $('obsAten').value = '';
+    flash('Observação salva no histórico do colaborador!', 'ok');
+    await carregarObs();
+  }catch(e){ flash(msgErro(e)); }
+  finally{ $('btnObs').disabled = false; }
+}
+
 async function carregarEquipe(){
   colaboradores = await rpc('listar_colaboradores', { p_token: token });
   const resets = colaboradores.filter(c => c.pediu_reset), novos = colaboradores.filter(c => c.aguardando);
@@ -649,11 +819,17 @@ function mostrar(t){
 function ir(t){
   mostrar(t);
   if (t==='Resultados') carregarResultados();
-  if (t==='Equipe') carregarEquipe();
+  if (t==='Equipe') abrirEquipe();
 }
 
 function toggleEqSenha(){ $('boxEqSenha').classList.remove('hidden'); $('eqSenhaLbl').textContent = $('eqPapel').value==='colaborador' ? 'Senha (opcional, o colaborador pode criar no primeiro acesso)' : 'Senha (obrigatória para Squad/Líder)'; }
 $('eqPapel').addEventListener('change', toggleEqSenha);
+$('obsColab').addEventListener('change', () => { const v = $('obsColab').value; $('obsMat').value = v.startsWith('PEND-') ? '' : v; carregarObs(); });
+$('obsMat').addEventListener('input', () => {
+  const m = $('obsMat').value.trim();
+  if ([...$('obsColab').options].some(o => o.value === m && m)) { $('obsColab').value = m; carregarObs(); }
+  else if (m && $('obsColab').value) { $('obsColab').value = ''; carregarObs(); }
+});
 toggleEqSenha();
 $('selAvaliado').addEventListener('change', () => {
   const v = $('selAvaliado').value; $('matAvaliado').value = v.startsWith('PEND-') ? 'Matrícula pendente de cadastro' : v;
