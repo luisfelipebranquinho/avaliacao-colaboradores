@@ -41,6 +41,13 @@
   .seg{display:flex;gap:6px}
   .seg button{flex:1;min-height:44px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;font:inherit;font-weight:600}
   .seg.n10{display:grid;grid-template-columns:repeat(6,1fr)}
+  .modelos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .modelo{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:var(--radius);padding:12px;font:inherit;color:var(--ink);cursor:pointer}
+  .modelo b{font-size:14px}
+  .modelo small{font-size:12px;color:var(--muted)}
+  .modelo.on{border-color:var(--brand);box-shadow:inset 0 -4px 0 var(--accent)}
+  .modelo.on b{color:var(--brand-2)}
+  .seg button.on.na{background:var(--muted);border-color:var(--muted);color:#fff}
   .av-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
   .av-head h2{margin:0;font-size:18px;color:var(--brand-2)}
   .placa{text-transform:uppercase;letter-spacing:.12em;font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
@@ -234,9 +241,17 @@
 
   <!-- AVALIAR -->
   <section id="scrAvaliar" class="hidden">
+    <div class="modelos" role="tablist" aria-label="Tipo de avaliação">
+      <button type="button" class="modelo on" data-m="personalizada" onclick="trocarModelo('personalizada')">
+        <b>Avaliação personalizada</b><small>Liberação – Lavação</small>
+      </button>
+      <button type="button" class="modelo" data-m="elevo" onclick="trocarModelo('elevo')">
+        <b>Avaliação Elevo</b><small>PAD HIG 012 · Movimentação no box</small>
+      </button>
+    </div>
     <div class="card">
       <div class="av-head">
-        <h2>Liberação – Lavação</h2>
+        <h2 id="avTitulo">Liberação – Lavação</h2>
         <span class="tag">1 avaliação = 1 carro</span>
       </div>
       <label for="selAvaliado">Colaborador avaliado</label>
@@ -390,7 +405,7 @@ let usuario = null, token = null, editando = null, colaboradores = [], respostas
    salvas; é por ele que comparamos a evolução ao longo do tempo.
    tipo "nota" = botões de 0 a 5 · tipo "fezNao" = Fez / Não fez
    ========================================================= */
-const GRUPOS = [
+const GRUPOS_PERSONALIZADA = [
   { id: 'ext', titulo: 'Qualidade da higienização externa', tipo: 'nota', itens: [
     { id: 'ext-01', texto: 'Caixas de roda' },
     { id: 'ext-02', texto: 'Latarias' },
@@ -421,8 +436,99 @@ const GRUPOS = [
     { id: 'aju-08', texto: 'Alinhamento dos direcionadores do ar' },
   ]},
 ];
-const ITENS = GRUPOS.flatMap(g => g.itens.map(i => ({ ...i, tipo: i.tipo || g.tipo, grupo: g.id })));
-const ITEM_POR_ID = Object.fromEntries(ITENS.map(i => [i.id, i]));
+/* =========================================================
+   AVALIAÇÃO ELEVO · PAD HIG 012 – Movimentação do carro no box
+   na: true = mostra também o botão "N/A" (passo condicional).
+   Itens marcados N/A não entram no cálculo da nota.
+   ========================================================= */
+const GRUPOS_ELEVO = [
+  { id: 'car', titulo: 'Carregamento – seleção e entrada', tipo: 'fezNao', itens: [
+    { id: 'car-01', texto: 'Selecionou o carro a ser higienizado conforme a demanda de reservas' },
+    { id: 'car-02', texto: 'Verificou se a triagem do carro corresponde ao tipo de higienização a ser executada' },
+    { id: 'car-03', texto: 'Entrou no carro' },
+    { id: 'car-04', texto: 'Ligou o carro' },
+    { id: 'car-05', texto: 'Ligou as luzes (lanternas, pisca-alerta e farol alto)' },
+    { id: 'car-06', texto: 'Observou se o carro apresenta algum problema: alerta no painel, odor etc.' },
+    { id: 'car-07', texto: 'Com problema: triou novamente e movimentou para local adequado com a Pré-SS preenchida', na: true },
+    { id: 'car-08', texto: 'Sem problema: dirigiu o carro até o box de higienização', na: true },
+    { id: 'car-09', texto: 'Testou o limpador de para-brisa apertando o esguicho por, no máximo, 3 segundos' },
+  ]},
+  { id: 'box', titulo: 'Carregamento – no box', tipo: 'fezNao', itens: [
+    { id: 'car-10', texto: 'Parou o carro dentro do box, puxou o freio de mão e virou todo o volante para a esquerda' },
+    { id: 'car-11', texto: 'Destravou o capô' },
+    { id: 'car-12', texto: 'Desligou as luzes (farol, pisca-alerta, lanternas)' },
+    { id: 'car-13', texto: 'Desligou o carro' },
+    { id: 'car-14', texto: 'Afastou os bancos do passageiro para trás (com 1 higienizador, quem faz é o higienizador)', na: true },
+    { id: 'car-15', texto: 'Afastou os bancos do motorista para trás' },
+    { id: 'car-16', texto: 'Saiu do carro' },
+    { id: 'car-17', texto: 'Tapetes muito sujos: retirou do carro para serem lavados', na: true },
+    { id: 'car-18', texto: 'Recolheu o lixo mais visível do carro: cantos de porta, console central...' },
+    { id: 'car-19', texto: 'Jogou o lixo recolhido na lixeira mais próxima' },
+  ]},
+  { id: 'des', titulo: 'Descarregamento – início', tipo: 'fezNao', itens: [
+    { id: 'des-01', texto: 'Entrou no carro após a finalização do checklist ou sinalização de problema' },
+    { id: 'des-02', texto: 'Engatou a ré' },
+    { id: 'des-03', texto: 'Saiu do carro e fechou a porta' },
+  ]},
+  { id: 'lte', titulo: 'Lateral esquerda traseira', tipo: 'fezNao', itens: [
+    { id: 'lte-01', texto: 'Conferiu higienização externa, avarias (lataria e vidros), pneu e roda' },
+    { id: 'lte-02', texto: 'Abriu a porta esquerda traseira: ajustou o encosto de cabeça (nível mais baixo), conferiu travamento dos cintos e higienização interna' },
+    { id: 'lte-03', texto: 'Verificou o bolsão da porta e atrás do banco do motorista', na: true },
+    { id: 'lte-04', texto: 'Fechou a porta' },
+    { id: 'lte-05', texto: 'Registrou a foto da lateral esquerda do carro (dianteira e traseira)' },
+  ]},
+  { id: 'tra', titulo: 'Parte traseira', tipo: 'fezNao', itens: [
+    { id: 'tra-01', texto: 'Conferiu higienização externa, avarias (lataria e vidros), limpador (se tiver), luzes e placa' },
+    { id: 'tra-02', texto: 'Abriu o porta-malas e conferiu higienização interna, estepe (pequenas batidas com a mão), macaco, triângulo e chave de roda' },
+    { id: 'tra-03', texto: 'Registrou a foto do estepe' },
+    { id: 'tra-04', texto: 'Fechou o porta-malas' },
+    { id: 'tra-05', texto: 'Registrou a foto da traseira do carro' },
+  ]},
+  { id: 'ldt', titulo: 'Lateral direita traseira', tipo: 'fezNao', itens: [
+    { id: 'ldt-01', texto: 'Abriu a portinhola do tanque de combustível e conferiu a tampa do tanque' },
+    { id: 'ldt-02', texto: 'Conferiu higienização externa, avarias (lataria e vidros), pneu e roda' },
+    { id: 'ldt-03', texto: 'Abriu a porta direita traseira: ajustou o encosto de cabeça (nível mais baixo), conferiu travamento dos cintos e higienização interna' },
+    { id: 'ldt-04', texto: 'Verificou o bolsão da porta e atrás do banco do passageiro', na: true },
+  ]},
+  { id: 'ldd', titulo: 'Lateral direita dianteira', tipo: 'fezNao', itens: [
+    { id: 'ldd-01', texto: 'Fechou a porta traseira e conferiu higienização externa, avarias (lataria, vidros e retrovisor), pneu e roda' },
+    { id: 'ldd-02', texto: 'Abriu a porta direita dianteira e conferiu a higienização interna' },
+    { id: 'ldd-03', texto: 'Devolveu a chave à ignição no 1º estágio para acender as luzes do carro', na: true },
+    { id: 'ldd-04', texto: 'Fechou a porta' },
+    { id: 'ldd-05', texto: 'Registrou a foto da lateral direita do carro (dianteira e traseira)' },
+  ]},
+  { id: 'fro', titulo: 'Parte frontal e finalização', tipo: 'fezNao', itens: [
+    { id: 'fro-01', texto: 'Conferiu as luzes: faróis, lanternas e pisca-alerta' },
+    { id: 'fro-02', texto: 'Voltou pela lateral esquerda dianteira e entrou no carro novamente' },
+    { id: 'fro-03', texto: 'Desengatou a ré e desligou as luzes' },
+    { id: 'fro-04', texto: 'Desligou o carro' },
+    { id: 'fro-05', texto: 'Saiu do carro e fechou a porta' },
+  ]},
+];
+
+const MODELOS = {
+  personalizada: { tipo: 'liberacao_lavacao', titulo: 'Liberação – Lavação', grupos: GRUPOS_PERSONALIZADA },
+  elevo:         { tipo: 'elevo',             titulo: 'Avaliação Elevo · PAD HIG 012', grupos: GRUPOS_ELEVO },
+};
+const modeloPorTipo = t => Object.values(MODELOS).find(m => m.tipo === t) || MODELOS.personalizada;
+const achatar = gs => gs.flatMap(g => g.itens.map(i => ({ ...i, tipo: i.tipo || g.tipo, grupo: g.id })));
+
+let modeloAtual = 'personalizada';
+let GRUPOS = MODELOS.personalizada.grupos;
+let ITENS = achatar(GRUPOS);
+let ITEM_POR_ID = Object.fromEntries(ITENS.map(i => [i.id, i]));
+function trocarModelo(m){
+  if (m === modeloAtual) return;
+  if (Object.keys(respostas).length && !confirm('Trocar o tipo de avaliação apaga as respostas já marcadas. Continuar?')) return;
+  modeloAtual = m;
+  GRUPOS = MODELOS[m].grupos; ITENS = achatar(GRUPOS); ITEM_POR_ID = Object.fromEntries(ITENS.map(i => [i.id, i]));
+  document.querySelectorAll('.modelo').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  $('avTitulo').textContent = MODELOS[m].titulo;
+  const col = $('selAvaliado').value, placa = $('placa').value;
+  novaAvaliacao();
+  $('selAvaliado').value = col; $('selAvaliado').dispatchEvent(new Event('change')); $('placa').value = placa;
+  atualizarBotao();
+}
 const PLACA_OK = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/;
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -546,7 +652,7 @@ async function carregarBase(){
 
 function botoesItem(it){
   return it.tipo === 'fezNao'
-    ? `<button type="button" data-v="1">Fez</button><button type="button" class="nao" data-v="0">Não fez</button>`
+    ? `<button type="button" data-v="1">Fez</button><button type="button" class="nao" data-v="0">Não fez</button>${it.na ? '<button type="button" class="na" data-v="-1">N/A</button>' : ''}`
     : [0,1,2,3,4,5].map(n => `<button type="button" data-v="${n}">${n}</button>`).join('');
 }
 
@@ -653,9 +759,10 @@ async function salvar(){
     await rpc('salvar_liberacao', {
       p_token: token, p_avaliado: avaliado, p_placa: placa,
       p_itens: ITENS.map(i => ({ id: i.id, tipo: i.tipo, valor: respostas[i.id] })),
-      p_observacao: $('obs').value
+      p_observacao: $('obs').value,
+      p_tipo: MODELOS[modeloAtual].tipo
     });
-    flash(`Liberação da placa ${placa} salva!`, 'ok'); novaAvaliacao();
+    flash(`${modeloAtual === 'elevo' ? 'Avaliação Elevo' : 'Liberação'} da placa ${placa} salva!`, 'ok'); novaAvaliacao();
   }catch(e){ flash('Não foi possível salvar: ' + e.message); }
   finally{ atualizarBotao(); }
 }
@@ -670,38 +777,38 @@ async function carregarResultados(){
   avaliacoes.forEach(a => { (por[a.avaliado] ??= { nome:a.avaliado_nome, soma:0, n:0 }); por[a.avaliado].soma += +a.pontuacao; por[a.avaliado].n++; });
   const lista = Object.values(por).sort((a,b)=>b.soma/b.n - a.soma/a.n);
   $('resumo').innerHTML = `<h3 style="margin-top:0">${gestor()?'Desempenho da equipe':'Quem você avaliou'}</h3>` +
-    (lista.length ? lista.map(c => { const m = c.soma/c.n; return `<div class="row"><div><div class="t">${esc(c.nome)}</div><div class="s">${c.n} liberação(ões) · média</div></div><div class="score ${cls(m)}">${m.toFixed(0)}%</div></div>`; }).join('')
+    (lista.length ? lista.map(c => { const m = c.soma/c.n; return `<div class="row"><div><div class="t">${esc(c.nome)}</div><div class="s">${c.n} avaliação(ões) · média</div></div><div class="score ${cls(m)}">${m.toFixed(0)}%</div></div>`; }).join('')
                   : '<p class="muted">Nenhuma avaliação ainda.</p>');
   $('listaAval').innerHTML = `<h3 style="margin-top:0">Histórico</h3>` +
     (avaliacoes.length ? avaliacoes.map(a => `<div class="row" onclick="verDetalhe(${a.id})" style="cursor:pointer">
-      <div><div class="t">${esc(a.avaliado_nome)}</div><div class="s">${a.placa ? '<b>' + esc(a.placa) + '</b> · ' : ''}${dt(a.criado_em)}${gestor()?' · por '+esc(a.avaliador_nome):''}</div></div>
+      <div><div class="t">${esc(a.avaliado_nome)}</div><div class="s">${a.tipo === 'elevo' ? '<span class="tag" style="margin:0 4px 0 0">Elevo</span>' : ''}${a.placa ? '<b>' + esc(a.placa) + '</b> · ' : ''}${dt(a.criado_em)}${gestor()?' · por '+esc(a.avaliador_nome):''}</div></div>
       <div class="score ${cls(+a.pontuacao)}">${(+a.pontuacao).toFixed(0)}%</div></div>`).join('')
       : '<p class="muted">Nada por aqui.</p>');
 }
 
 let textoWhats = '';
-const EMOJI_GRUPO = { ext: '🚿', int: '🧼', lib: '🔍', aju: '⚙️' };
+const EMOJI_GRUPO = { ext: '🚿', int: '🧼', lib: '🔍', aju: '⚙️', car: '🔑', box: '🅿️', des: '↩️', lte: '⬅️', tra: '🧳', ldt: '➡️', ldd: '🚪', fro: '💡' };
 function estrelas(n){ return '⭐'.repeat(n) + '▫️'.repeat(5 - n); }
 function montarTextoWhats(a, val){
   const nota = (+a.pontuacao).toFixed(0);
   const selo = +a.pontuacao >= 80 ? '🟢' : +a.pontuacao >= 60 ? '🟡' : '🔴';
-  const L = [];
-  L.push('📋 *LIBERAÇÃO – LAVAÇÃO*');
+  const L = [], M = modeloPorTipo(a.tipo);
+  L.push(`📋 *${M.titulo.toUpperCase()}*`);
   L.push('');
   L.push(`👤 *Colaborador:* ${a.avaliado_nome} (${a.avaliado})`);
   if (a.placa) L.push(`🚗 *Placa:* ${a.placa}`);
   L.push(`📅 *Data:* ${dt(a.criado_em)}`);
   L.push(`🧑‍💼 *Avaliador:* ${a.avaliador_nome}`);
   L.push(`${selo} *Nota final:* ${nota}%`);
-  GRUPOS.forEach(g => {
+  M.grupos.forEach(g => {
     const linhas = g.itens.filter(i => val[i.id]).map(i => {
       const r = val[i.id];
       return r.tipo === 'fezNao'
-        ? `${r.valor ? '✅' : '❌'} ${i.texto}`
+        ? `${r.valor < 0 ? '➖' : r.valor ? '✅' : '❌'} ${i.texto}${r.valor < 0 ? ' _(N/A)_' : ''}`
         : `• ${i.texto}: *${r.valor}/5* ${estrelas(r.valor)}`;
     });
     if (!linhas.length) return;
-    const naoFez = g.itens.filter(i => val[i.id] && val[i.id].tipo === 'fezNao' && !val[i.id].valor).length;
+    const naoFez = g.itens.filter(i => val[i.id] && val[i.id].tipo === 'fezNao' && val[i.id].valor === 0).length;
     L.push('');
     L.push(`${EMOJI_GRUPO[g.id] || '▪️'} *${g.titulo}*${naoFez ? `  _(${naoFez} não ${naoFez === 1 ? 'feito' : 'feitos'})_` : ''}`);
     linhas.forEach(x => L.push(x));
@@ -729,15 +836,16 @@ async function verDetalhe(id){
     const val = Object.fromEntries(itens.map(i => [i.item_id, i]));
     const linha = (iid, texto) => {
       const r = val[iid]; if (!r) return '';
-      const v = r.tipo === 'fezNao' ? (r.valor ? '✅ Fez' : '❌ Não fez') : `${r.valor} / 5`;
+      const v = r.tipo === 'fezNao' ? (r.valor < 0 ? '➖ N/A' : r.valor ? '✅ Fez' : '❌ Não fez') : `${r.valor} / 5`;
       return `<div class="row"><div class="t" style="font-weight:500">${esc(texto)}</div><div style="white-space:nowrap;font-weight:600">${v}</div></div>`;
     };
-    const conhecidos = new Set(ITENS.map(i => i.id));
+    const M = modeloPorTipo(a.tipo);
+    const conhecidos = new Set(achatar(M.grupos).map(i => i.id));
     const extras = itens.filter(i => !conhecidos.has(i.item_id));
     $('detalhe').innerHTML = `<h3 style="margin-top:0">${esc(a.avaliado_nome)}</h3>
-      <p class="muted">${a.placa ? '<b>Placa ' + esc(a.placa) + '</b> · ' : ''}${dt(a.criado_em)} · avaliado por ${esc(a.avaliador_nome)}</p>
+      <p class="muted"><b>${esc(M.titulo)}</b><br>${a.placa ? '<b>Placa ' + esc(a.placa) + '</b> · ' : ''}${dt(a.criado_em)} · avaliado por ${esc(a.avaliador_nome)}</p>
       <div class="score ${cls(+a.pontuacao)}" style="display:inline-block;margin-bottom:8px">${(+a.pontuacao).toFixed(0)}%</div>` +
-      GRUPOS.map(g => {
+      M.grupos.map(g => {
         const linhas = g.itens.map(i => linha(i.id, i.texto)).join('');
         return linhas ? `<div class="det-grupo">${esc(g.titulo)}</div>` + linhas : '';
       }).join('') +
