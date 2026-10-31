@@ -85,6 +85,9 @@
   .obs-tag.avaliacao{background:#e6eef7;color:#1f4f82}
   .obs-item p{margin:0;white-space:pre-wrap}
   .falta{margin:8px 0 0;text-align:center;font-size:13px}
+  .share{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+  .share .btn{margin-top:8px}
+  .btn.wa{background:#25d366;color:#0b3d1f}
   .det-grupo{margin:14px 0 4px;font-size:13px;font-weight:700;color:var(--brand-2);text-transform:uppercase;letter-spacing:.04em}
   .seg button.on.sim{background:var(--ok);border-color:var(--ok);color:#fff}
   .seg button.on.nao{background:var(--bad);border-color:var(--bad);color:#fff}
@@ -676,6 +679,49 @@ async function carregarResultados(){
       : '<p class="muted">Nada por aqui.</p>');
 }
 
+let textoWhats = '';
+const EMOJI_GRUPO = { ext: '🚿', int: '🧼', lib: '🔍', aju: '⚙️' };
+function estrelas(n){ return '⭐'.repeat(n) + '▫️'.repeat(5 - n); }
+function montarTextoWhats(a, val){
+  const nota = (+a.pontuacao).toFixed(0);
+  const selo = +a.pontuacao >= 80 ? '🟢' : +a.pontuacao >= 60 ? '🟡' : '🔴';
+  const L = [];
+  L.push('📋 *LIBERAÇÃO – LAVAÇÃO*');
+  L.push('');
+  L.push(`👤 *Colaborador:* ${a.avaliado_nome} (${a.avaliado})`);
+  if (a.placa) L.push(`🚗 *Placa:* ${a.placa}`);
+  L.push(`📅 *Data:* ${dt(a.criado_em)}`);
+  L.push(`🧑‍💼 *Avaliador:* ${a.avaliador_nome}`);
+  L.push(`${selo} *Nota final:* ${nota}%`);
+  GRUPOS.forEach(g => {
+    const linhas = g.itens.filter(i => val[i.id]).map(i => {
+      const r = val[i.id];
+      return r.tipo === 'fezNao'
+        ? `${r.valor ? '✅' : '❌'} ${i.texto}`
+        : `• ${i.texto}: *${r.valor}/5* ${estrelas(r.valor)}`;
+    });
+    if (!linhas.length) return;
+    const naoFez = g.itens.filter(i => val[i.id] && val[i.id].tipo === 'fezNao' && !val[i.id].valor).length;
+    L.push('');
+    L.push(`${EMOJI_GRUPO[g.id] || '▪️'} *${g.titulo}*${naoFez ? `  _(${naoFez} não ${naoFez === 1 ? 'feito' : 'feitos'})_` : ''}`);
+    linhas.forEach(x => L.push(x));
+  });
+  if (a.observacao) { L.push(''); L.push('📝 *Observações:*'); L.push(`_${a.observacao.trim()}_`); }
+  return L.join('\n');
+}
+async function copiarWhats(){
+  try{
+    await navigator.clipboard.writeText(textoWhats);
+    flash('Texto copiado! É só colar no WhatsApp.', 'ok');
+  }catch(e){
+    const t = $('txtWhats'); t.value = textoWhats; t.classList.remove('hidden'); t.select();
+    let ok = false; try{ ok = document.execCommand('copy'); }catch(_){}
+    t.classList.add('hidden');
+    flash(ok ? 'Texto copiado! É só colar no WhatsApp.' : 'Não consegui copiar automaticamente. Use "Enviar pelo WhatsApp".', ok ? 'ok' : 'err');
+  }
+}
+function abrirWhats(){ window.open('https://wa.me/?text=' + encodeURIComponent(textoWhats), '_blank'); }
+
 async function verDetalhe(id){
   const a = avaliacoes.find(x => x.id === id);
   try{
@@ -696,7 +742,13 @@ async function verDetalhe(id){
         return linhas ? `<div class="det-grupo">${esc(g.titulo)}</div>` + linhas : '';
       }).join('') +
       (extras.length ? `<div class="det-grupo">Itens antigos</div>` + extras.map(i => linha(i.item_id, i.item_id)).join('') : '') +
-      (a.observacao ? `<div class="row"><div><div class="s">Observações</div>${esc(a.observacao)}</div></div>` : '');
+      (a.observacao ? `<div class="row"><div><div class="s">Observações</div>${esc(a.observacao)}</div></div>` : '') +
+      `<div class="share">
+        <button type="button" class="btn" onclick="copiarWhats()">📋 Copiar para WhatsApp</button>
+        <button type="button" class="btn wa" onclick="abrirWhats()">Enviar pelo WhatsApp</button>
+        <textarea id="txtWhats" class="hidden" readonly></textarea>
+      </div>`;
+    textoWhats = montarTextoWhats(a, val);
     mostrar('Detalhe');
   }catch(e){ flash(e.message); }
 }
