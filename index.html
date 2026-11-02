@@ -733,7 +733,7 @@ function sair(){
 async function carregarBase(){
   colaboradores = await rpc('listar_colaboradores', { p_token: token });
   const opts = colaboradores.filter(c => c.ativo && !c.aguardando && ['colaborador','squad'].includes(c.papel) && c.matricula !== usuario.matricula)
-    .map(c => `<option value="${esc(c.matricula)}">${esc(c.nome)}${c.papel === "squad" ? " (Squad)" : ""}</option>`).join('');
+    .map(c => `<option value="${esc(c.matricula)}">${esc(c.nome)}${c.papel === "squad" ? " (Squad)" : ""}${c.privado ? " 🔒 só você vê" : ""}</option>`).join('');
   $('selAvaliado').innerHTML = `<option value="">Selecione...</option>` + opts;
   novaAvaliacao();
 }
