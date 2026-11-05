@@ -162,6 +162,18 @@
   nav button{flex:1;background:none;border:0;padding:12px 4px;font:inherit;font-size:13px;color:var(--muted);font-weight:600}
   nav button.on{color:var(--brand-2);box-shadow:inset 0 3px 0 var(--accent)}
   .hidden{display:none!important}
+  .trn-hero{background:linear-gradient(140deg,var(--brand) 0%,var(--brand-dark) 100%);color:#fff;border-radius:var(--radius);padding:18px 16px;margin-bottom:12px;position:relative;overflow:hidden}
+  .trn-hero::after{content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:var(--accent);opacity:.2}
+  .trn-hero h2{margin:6px 0 4px;font-size:19px}
+  .trn-hero p{margin:0;opacity:.88;font-size:13px}
+  .trn-list{display:flex;flex-direction:column;gap:12px}
+  .trn-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .trn-card video{display:block;width:100%;aspect-ratio:16/9;background:#000}
+  .trn-info{display:flex;align-items:center;gap:12px;padding:12px 14px}
+  .trn-num{flex:none;width:34px;height:34px;border-radius:10px;background:var(--accent);color:#1b2620;display:grid;place-items:center;font-weight:800}
+  .trn-info .t{font-weight:700}
+  .trn-info .s{font-size:13px;color:var(--muted);line-height:1.35}
+  .trn-dur{margin-left:auto;flex:none;font-size:12px;font-weight:700;color:var(--brand-2)}
   .msg{padding:12px;border-radius:10px;margin-bottom:12px;font-size:14px}
   .msg.err{background:#fdecea;color:#8a1f14} .msg.ok{background:#e6f4ec;color:#145c33}
   .progress{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:8px}
@@ -352,6 +364,16 @@
     <details class="grupo sec" id="secHist"><summary><span><span class="seta">▸</span> Histórico</span></summary><div class="grupo-body" id="listaAval"></div></details>
   </section>
 
+  <!-- TREINAMENTO -->
+  <section id="scrTreino" class="hidden">
+    <div class="trn-hero">
+      <span class="badge" style="margin-bottom:4px">PAD CON 001 · v10</span>
+      <h2>Conferência do carro</h2>
+      <p>Checklist junto da higienização interna, em 6 vídeos curtos. Toque no vídeo para assistir; vire o celular para tela cheia.</p>
+    </div>
+    <div class="trn-list" id="trnLista"></div>
+  </section>
+
   <!-- EVOLUÇÃO DO COLABORADOR -->
   <section id="scrColab" class="hidden">
     <button type="button" class="voltar" onclick="ir('Resultados')">‹ Resultados</button>
@@ -475,6 +497,7 @@
 <nav id="nav" class="hidden">
   <button data-t="Avaliar" onclick="ir('Avaliar')">Avaliar</button>
   <button data-t="Resultados" onclick="ir('Resultados')">Resultados</button>
+  <button data-t="Treino" onclick="ir('Treino')">Treinamento</button>
   <button data-t="Equipe" id="navEquipe" onclick="ir('Equipe')">Equipe</button>
 </nav>
 
@@ -726,7 +749,8 @@ function sair(){
   if (token) db.rpc('sair', { p_token: token });
   guardar('sessao', null); usuario = null; token = null;
   $('loginSenha').value = ''; modo('entrar');
-  ['topbar','nav','scrAvaliar','scrResultados','scrDetalhe','scrEquipe','scrColab'].forEach(i=>$(i).classList.add('hidden'));
+  ['topbar','nav','scrAvaliar','scrResultados','scrDetalhe','scrEquipe','scrColab','scrTreino'].forEach(i=>$(i).classList.add('hidden'));
+  document.querySelectorAll('#trnLista video').forEach(v=>v.pause());
   $('scrLogin').classList.remove('hidden');
 }
 
@@ -1250,7 +1274,8 @@ async function salvarColab(){
 }
 
 function mostrar(t){
-  ['Avaliar','Resultados','Detalhe','Equipe','Colab'].forEach(x => $('scr'+x).classList.toggle('hidden', x!==t));
+  ['Avaliar','Resultados','Detalhe','Equipe','Colab','Treino'].forEach(x => $('scr'+x).classList.toggle('hidden', x!==t));
+  if (t!=='Treino') document.querySelectorAll('#trnLista video').forEach(v=>v.pause());
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t===t || ((t==='Detalhe' || t==='Colab') && b.dataset.t==='Resultados')));
   window.scrollTo(0,0);
 }
@@ -1258,6 +1283,26 @@ function ir(t){
   mostrar(t);
   if (t==='Resultados') { voltarPara = 'Resultados'; carregarResultados(); }
   if (t==='Equipe') abrirEquipe();
+  if (t==='Treino') montarTreino();
+}
+
+const TREINO = [
+  ['Frente do carro', 'Abertura, materiais, app (placa e metodologia), frente, capô e fotos', '0:56'],
+  ['Interior do carro', 'Lateral esquerda dianteira e todos os passos dentro do carro', '1:26'],
+  ['Lateral esquerda', 'Lateral esquerda traseira, porta, bolsão e foto', '0:21'],
+  ['Traseira', 'Porta-malas, estepe, ferramentas e fotos', '0:23'],
+  ['Lateral direita', 'Portinhola, portas da direita, chave no 1º estágio e foto', '0:41'],
+  ['Luzes e finalização', 'Faróis, lanternas e pisca, desligar o carro e resumo', '0:33'],
+];
+function montarTreino(){
+  const box = $('trnLista'); if (box.dataset.ok) return;
+  box.innerHTML = TREINO.map(([t, s, d], i) => `
+    <div class="trn-card">
+      <video controls playsinline preload="none" poster="videos/take${i+1}.jpg" src="videos/take${i+1}.mp4"></video>
+      <div class="trn-info"><div class="trn-num">${i+1}</div><div><div class="t">${t}</div><div class="s">${s}</div></div><div class="trn-dur">${d}</div></div>
+    </div>`).join('');
+  box.querySelectorAll('video').forEach(v => v.addEventListener('play', () => box.querySelectorAll('video').forEach(o => { if (o !== v) o.pause(); })));
+  box.dataset.ok = '1';
 }
 
 function toggleEqSenha(){
