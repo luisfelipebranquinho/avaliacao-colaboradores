@@ -495,7 +495,7 @@
 </main>
 
 <nav id="nav" class="hidden">
-  <button data-t="Avaliar" onclick="ir('Avaliar')">Avaliar</button>
+  <button data-t="Avaliar" id="navAvaliar" onclick="ir('Avaliar')">Avaliar</button>
   <button data-t="Resultados" onclick="ir('Resultados')">Resultados</button>
   <button data-t="Treino" onclick="ir('Treino')">Treinamento</button>
   <button data-t="Equipe" id="navEquipe" onclick="ir('Equipe')">Equipe</button>
@@ -741,7 +741,7 @@ function esqueci(){ return ocupado('btnEsqueci', async () => {
 async function abrirApp(){
   $('userName').innerHTML = `${esc(usuario.nome)}<small>${nomePapel(usuario.papel)} · ${esc(usuario.matricula)}</small>`;
   $('topbar').classList.remove('hidden'); $('nav').classList.remove('hidden'); $('scrLogin').classList.add('hidden');
-  try{ await carregarBase(); ir('Avaliar'); }
+  try{ $('navAvaliar').classList.toggle('hidden', !gestor()); await carregarBase(); ir(gestor() ? 'Avaliar' : 'Resultados'); }
   catch(e){ sair(); flash(e.message); }
 }
 
@@ -1280,6 +1280,7 @@ function mostrar(t){
   window.scrollTo(0,0);
 }
 function ir(t){
+  if (t === 'Avaliar' && !gestor()) t = 'Resultados';
   mostrar(t);
   if (t==='Resultados') { voltarPara = 'Resultados'; carregarResultados(); }
   if (t==='Equipe') abrirEquipe();
